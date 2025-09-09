@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -365,74 +366,76 @@ export default function StudentDashboard() {
           </TabsContent>
 
           <TabsContent value="heal-me" className="mt-6">
-             <div className="grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-2 space-y-6">
-                    <Card className="rounded-2xl shadow-lg">
-                        <CardHeader>
-                            <CardTitle>Recommended For You</CardTitle>
-                            <CardDescription>Videos and books to help you on your journey.</CardDescription>
-                        </Header>
-                        <CardContent className="grid gap-6 md:grid-cols-2">
-                            {healMeResources.videos.map(res => (
-                                <div key={res.id} className="group relative">
-                                    <Image data-ai-hint={res.dataAiHint} src={res.thumbnail} alt={res.title} width={600} height={400} className="rounded-lg aspect-video object-cover" />
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                        <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
-                                    </div>
-                                </div>
-                            ))}
-                            {healMeResources.books.map(res => (
-                                <div key={res.id} className="group relative">
-                                    <Image data-ai-hint={res.dataAiHint} src={res.thumbnail} alt={res.title} width={600} height={400} className="rounded-lg aspect-video object-cover" />
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                                        <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
-                                    </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-lg">
-                         <CardHeader>
-                            <CardTitle>Explore Topics</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <Button variant="outline" className="h-20 flex-col gap-1">
-                                <Wind/>
-                                Breathing
-                            </Button>
-                            <Button variant="outline" className="h-20 flex-col gap-1">
-                                <BookOpen/>
-                                Books
-                            </Button>
-                             <Button variant="outline" className="h-20 flex-col gap-1">
-                                <BrainCircuit/>
-                                Techniques
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-                <div className="space-y-6">
-                    <Card className="rounded-2xl shadow-lg">
-                        <CardHeader>
-                            <CardTitle>Meditation</CardTitle>
-                            <CardDescription>Find your inner peace.</CardDescription>
-                        </Header>
-                        <CardContent>
-                            <Image data-ai-hint="meditation nature" src="https://picsum.photos/600/400" alt="Meditation" width={600} height={400} className="rounded-lg aspect-video object-cover mb-4" />
-                            <Button asChild className="w-full"><Link href="/meditation">Start a Session</Link></Button>
-                        </CardContent>
-                    </Card>
-                     <Card className="rounded-2xl shadow-lg">
-                        <CardHeader>
-                            <CardTitle>Calming Music</CardTitle>
-                            <CardDescription>Listen to curated playlists.</CardDescription>
-                        </Header>
-                        <CardContent>
-                             <Button variant="secondary" className="w-full"><Headphones className="mr-2"/> Open Playlist</Button>
-                        </CardContent>
-                    </Card>
-                </div>
-             </div>
+            <Card className="rounded-2xl shadow-lg">
+                <CardHeader>
+                    <CardTitle>Recommended For You</CardTitle>
+                    <CardDescription>Videos and books to help you on your journey.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-6 md:grid-cols-2">
+                    {healMeResources.videos.map(res => (
+                    <div key={res.id} className="group relative">
+                        <Image
+                        data-ai-hint={res.dataAiHint}
+                        src={res.thumbnail}
+                        alt={res.title}
+                        width={600}
+                        height={400}
+                        className="rounded-lg aspect-video object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                        <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
+                        </div>
+                    </div>
+                    ))}
+                    {healMeResources.books.map(res => (
+                    <div key={res.id} className="group relative">
+                        <Image
+                        data-ai-hint={res.dataAiHint}
+                        src={res.thumbnail}
+                        alt={res.title}
+                        width={600}
+                        height={400}
+                        className="rounded-lg aspect-video object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                        <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
+                        </div>
+                    </div>
+                    ))}
+                </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl shadow-lg mt-6">
+                <CardHeader>
+                    <CardTitle>Meditation</CardTitle>
+                    <CardDescription>Find your inner peace.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Image
+                    data-ai-hint="meditation nature"
+                    src="https://picsum.photos/600/400"
+                    alt="Meditation"
+                    width={600}
+                    height={400}
+                    className="rounded-lg aspect-video object-cover mb-4"
+                    />
+                    <Button asChild className="w-full">
+                    <Link href="/meditation">Start a Session</Link>
+                    </Button>
+                </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl shadow-lg mt-6">
+                    <CardHeader>
+                        <CardTitle>Calming Music</CardTitle>
+                        <CardDescription>Listen to curated playlists.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button variant="secondary" className="w-full">
+                        <Headphones className="mr-2" /> Open Playlist
+                        </Button>
+                    </CardContent>
+                </Card>
           </TabsContent>
         </Tabs>
       </main>
@@ -440,3 +443,5 @@ export default function StudentDashboard() {
     </>
   );
 }
+
+    
