@@ -41,10 +41,6 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import {
   availableTimes,
-  counsellors,
-  featuredDiscussions,
-  activeTopics,
-  healMeResources,
 } from '@/lib/data';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
@@ -52,7 +48,7 @@ import { useRouter } from 'next/navigation';
 import { ChatbotModal } from '@/components/chatbot-modal';
 import Image from 'next/image';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, onSnapshot, Timestamp, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
 
@@ -65,6 +61,11 @@ interface Appointment {
     date: string; // Storing date as string for simplicity
     time: string;
 }
+
+interface Counsellor extends AppUser {
+    id: string;
+}
+
 
 const moodOptions = [
   { name: 'Sad', icon: Frown },
@@ -82,10 +83,25 @@ export default function StudentDashboard() {
   const [mood, setMood] = useState('Neutral');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isChatbotOpen, setChatbotOpen] = useState(false);
+  const [counsellors, setCounsellors] = useState<Counsellor[]>([]);
   const [selectedCounsellor, setSelectedCounsellor] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isBooking, setIsBooking] = useState(false);
+
+  useEffect(() => {
+    const fetchCounsellors = async () => {
+      const q = query(collection(db, "users"), where("role", "==", "Counsellor"));
+      const querySnapshot = await getDocs(q);
+      const fetchedCounsellors: Counsellor[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedCounsellors.push({ id: doc.id, ...(doc.data() as Omit<AppUser, 'uid'>), uid: doc.id });
+      });
+      setCounsellors(fetchedCounsellors);
+    };
+
+    fetchCounsellors();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -413,7 +429,7 @@ export default function StudentDashboard() {
                         <CardHeader>
                             <CardTitle>Calming Music</CardTitle>
                             <CardDescription>Listen to curated playlists.</CardDescription>
-                        </CardHeader>
+                        </Header>
                         <CardContent>
                              <Button variant="secondary" className="w-full"><Headphones className="mr-2"/> Open Playlist</Button>
                         </CardContent>
@@ -422,8 +438,8 @@ export default function StudentDashboard() {
              </div>
           </TabsContent>
         </Tabs>
-        <ChatbotModal open={isChatbotOpen} onOpenChange={setChatbotOpen} mood={mood} />
       </main>
+      <ChatbotModal open={isChatbotOpen} onOpenChange={setChatbotOpen} mood={mood} />
     </>
   );
 }
