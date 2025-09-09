@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,14 +18,10 @@ import {
   Heart,
   Laugh,
   MessageSquare,
-  Send,
-  Calendar as CalendarIcon,
-  Video,
   BookOpen,
   Headphones,
   Wind,
   BrainCircuit,
-  User,
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,6 +38,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import {
   availableTimes,
+  healMeResources
 } from '@/lib/data';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
@@ -126,11 +124,6 @@ export default function StudentDashboard() {
     return () => unsubscribe();
   }, [user]);
   
-  if (!user || user.role !== 'Student') {
-    if (typeof window !== 'undefined') router.push('/');
-    return null;
-  }
-
   const handleBookAppointment = async () => {
       if (!user || !selectedCounsellor || !date || !selectedTime) {
           toast({
@@ -170,6 +163,11 @@ export default function StudentDashboard() {
       } finally {
           setIsBooking(false);
       }
+  }
+  
+  if (!user || user.role !== 'Student') {
+    if (typeof window !== 'undefined') router.push('/');
+    return null;
   }
 
   return (
@@ -374,7 +372,7 @@ export default function StudentDashboard() {
                         <CardHeader>
                             <CardTitle>Recommended For You</CardTitle>
                             <CardDescription>Videos and books to help you on your journey.</CardDescription>
-                        </CardHeader>
+                        </Header>
                         <CardContent className="grid gap-6 md:grid-cols-2">
                             {healMeResources.videos.map(res => (
                                 <div key={res.id} className="group relative">
@@ -419,7 +417,7 @@ export default function StudentDashboard() {
                         <CardHeader>
                             <CardTitle>Meditation</CardTitle>
                             <CardDescription>Find your inner peace.</CardDescription>
-                        </CardHeader>
+                        </Header>
                         <CardContent>
                             <Image data-ai-hint="meditation nature" src="https://picsum.photos/600/400" alt="Meditation" width={600} height={400} className="rounded-lg aspect-video object-cover mb-4" />
                             <Button asChild className="w-full"><Link href="/meditation">Start a Session</Link></Button>
