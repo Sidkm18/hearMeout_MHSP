@@ -22,28 +22,32 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true);
       if (firebaseUser) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
           setUser(userData);
           const userPath = `/${userData.role.toLowerCase()}`;
-          if (pathname === '/' || !pathname.startsWith(userPath)) {
+          if (pathname !== userPath) {
             router.push(userPath);
           }
         } else {
-          // Handle case where user exists in Auth but not in Firestore
+          // If user exists in Auth but not Firestore, log them out.
+          await signOut(auth);
           setUser(null);
+          router.push('/');
         }
       } else {
         setUser(null);
-        if (pathname !== '/') {
+         if (pathname !== '/') {
             router.push('/');
         }
       }
@@ -54,20 +58,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pathname, router]);
 
   const signIn = async (email: string, pass: string) => {
-    setLoading(true);
+    setAuthLoading(true);
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      // Auth state change will handle redirect
+      // onAuthStateChanged will handle the redirect
     } catch (e: any) {
       setError(e.message);
       console.error(e);
-      setLoading(false);
+    } finally {
+      setAuthLoading(false);
     }
   };
   
   const signUp = async (email: string, pass: string, role: UserRole, name: string) => {
-    setLoading(true);
+    setAuthLoading(true);
     setError(null);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
@@ -80,12 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-      setUser(newUser);
-       // Auth state change will handle redirect
+      // onAuthStateChanged will set the user and redirect
     } catch (e: any) {
       setError(e.message);
       console.error(e);
-      setLoading(false);
+    } finally {
+        setAuthLoading(false);
     }
   };
 
@@ -103,17 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  if (loading && !user && pathname !== '/') {
+  if (loading) {
     return (
        <div className="flex min-h-screen w-full flex-col items-center justify-center p-4">
         <Logo />
-        <p className="mt-4 text-primary-foreground/80">Loading...</p>
+        <p className="mt-4 text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, logout }}>
+    <AuthContext.Provider value={{ user, loading: authLoading, error, signIn, signUp, logout }}>
       {children}
     </AuthContext.Provider>
   );
