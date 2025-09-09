@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/header';
 import {
   Card,
@@ -25,6 +25,7 @@ import {
   Wind,
   BrainCircuit,
   User,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -50,6 +51,20 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { ChatbotModal } from '@/components/chatbot-modal';
 import Image from 'next/image';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import type { User as AppUser } from '@/lib/types';
+
+
+interface Appointment {
+    id: string;
+    studentId: string;
+    counsellorId: string;
+    counsellorName: string;
+    date: string; // Storing date as string for simplicity
+    time: string;
+}
 
 const moodOptions = [
   { name: 'Sad', icon: Frown },
@@ -62,13 +77,83 @@ const moodOptions = [
 export default function StudentDashboard() {
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+
   const [mood, setMood] = useState('Neutral');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isChatbotOpen, setChatbotOpen] = useState(false);
+  const [selectedCounsellor, setSelectedCounsellor] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isBooking, setIsBooking] = useState(false);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, 'appointments'), where('studentId', '==', (user as any).uid));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const userAppointments: Appointment[] = [];
+      querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          userAppointments.push({
+            id: doc.id,
+            studentId: data.studentId,
+            counsellorId: data.counsellorId,
+            counsellorName: data.counsellorName,
+            date: data.date,
+            time: data.time,
+          });
+      });
+      setAppointments(userAppointments.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+  
   if (!user || user.role !== 'Student') {
     if (typeof window !== 'undefined') router.push('/');
     return null;
+  }
+
+  const handleBookAppointment = async () => {
+      if (!user || !selectedCounsellor || !date || !selectedTime) {
+          toast({
+              title: "Incomplete Details",
+              description: "Please select a counsellor, date, and time.",
+              variant: "destructive"
+          });
+          return;
+      }
+      setIsBooking(true);
+      try {
+        const counsellor = counsellors.find(c => c.id === selectedCounsellor);
+        await addDoc(collection(db, 'appointments'), {
+            studentId: (user as any).uid,
+            studentName: user.name,
+            counsellorId: selectedCounsellor,
+            counsellorName: counsellor?.name,
+            date: date.toISOString().split('T')[0], // YYYY-MM-DD
+            time: selectedTime,
+            createdAt: Timestamp.now(),
+        });
+        toast({
+            title: "Success!",
+            description: "Your appointment has been booked."
+        })
+        setSelectedCounsellor('');
+        setSelectedTime('');
+        setDate(new Date());
+
+      } catch (error) {
+          console.error("Error booking appointment: ", error);
+           toast({
+              title: "Booking Failed",
+              description: "Could not book the appointment. Please try again.",
+              variant: "destructive"
+          });
+      } finally {
+          setIsBooking(false);
+      }
   }
 
   return (
@@ -135,7 +220,7 @@ export default function StudentDashboard() {
                 </CardHeader>
                 <CardContent className="grid gap-6 md:grid-cols-2">
                     <div>
-                        <Select>
+                        <Select value={selectedCounsellor} onValueChange={setSelectedCounsellor}>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a therapist" />
                         </SelectTrigger>
@@ -152,21 +237,44 @@ export default function StudentDashboard() {
                         selected={date}
                         onSelect={setDate}
                         className="rounded-md border mt-4"
+                        disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
                         />
                     </div>
                     <div>
                         <h4 className="font-semibold mb-2">Available Times</h4>
                         <div className="grid grid-cols-2 gap-2">
                         {availableTimes.map((time) => (
-                            <Button key={time} variant="outline">{time}</Button>
+                            <Button 
+                                key={time} 
+                                variant={selectedTime === time ? 'default' : 'outline'}
+                                onClick={() => setSelectedTime(time)}
+                            >
+                                {time}
+                            </Button>
                         ))}
                         </div>
-                        <Button className="w-full mt-4">Book Appointment</Button>
+                        <Button 
+                            className="w-full mt-4"
+                            onClick={handleBookAppointment}
+                            disabled={isBooking || !selectedCounsellor || !date || !selectedTime}
+                        >
+                            {isBooking ? <Loader2 className="animate-spin"/> : "Book Appointment"}
+                        </Button>
                     </div>
                 </CardContent>
                  <CardFooter className="flex-col items-start gap-4">
                     <h4 className="font-semibold">Your Appointments</h4>
-                    <p className="text-sm text-muted-foreground">No upcoming appointments.</p>
+                     {appointments.length > 0 ? (
+                        <ul className="space-y-2 w-full">
+                        {appointments.map(app => (
+                             <li key={app.id} className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg flex justify-between items-center">
+                                <span>With <b>{app.counsellorName}</b> on {new Date(app.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at {app.time}</span>
+                            </li>
+                        ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">No upcoming appointments.</p>
+                    )}
                 </CardFooter>
               </Card>
 

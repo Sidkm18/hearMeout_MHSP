@@ -33,11 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
-          const userData = userDoc.data() as User;
-          setUser(userData);
-          const userPath = `/${userData.role.toLowerCase()}`;
-          if (pathname !== userPath) {
-            router.push(userPath);
+          const userData = userDoc.data() as Omit<User, 'uid'>;
+          const userWithUid: User = { ...userData, uid: firebaseUser.uid };
+          setUser(userWithUid);
+          const userPath = `/${userWithUid.role.toLowerCase()}`;
+          if (pathname !== userPath && pathname !== '/student-profile' && pathname !== '/counsellor-profile') {
+             // Avoid redirecting if already on a valid page for that role
           }
         } else {
           // If user exists in Auth but not Firestore, log them out.
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setUser(null);
          if (pathname !== '/') {
-            router.push('/');
+            // router.push('/'); // This can cause issues with routing, disabling for now
         }
       }
       setLoading(false);
@@ -61,8 +62,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthLoading(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle the redirect
+      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+      const firebaseUser = userCredential.user;
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data() as Omit<User, 'uid'>;
+        const userWithUid: User = { ...userData, uid: firebaseUser.uid };
+        setUser(userWithUid);
+        router.push(`/${userWithUid.role.toLowerCase()}`);
+      } else {
+        throw new Error("User data not found in Firestore.");
+      }
     } catch (e: any) {
       setError(e.message);
       console.error(e);
@@ -78,14 +88,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       const firebaseUser = userCredential.user;
       
-      const newUser: User = {
+      const newUser: Omit<User, 'uid'> = {
         name,
         email: firebaseUser.email!,
         role,
       };
 
       await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-      // onAuthStateChanged will set the user and redirect
+      const userWithUid: User = { ...newUser, uid: firebaseUser.uid };
+      setUser(userWithUid);
+      router.push(`/${userWithUid.role.toLowerCase()}`);
+
     } catch (e: any) {
       setError(e.message);
       console.error(e);
@@ -108,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  if (loading) {
+  if (loading && pathname === '/') {
     return (
        <div className="flex min-h-screen w-full flex-col items-center justify-center p-4">
         <Logo />
