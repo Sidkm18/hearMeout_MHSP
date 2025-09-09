@@ -70,7 +70,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md rounded-2xl shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-4xl">
-            Welcome to Inner Space
+            Welcome to HearMeOut
           </CardTitle>
           <CardDescription className="pt-2">
             Your safe space for mental wellness. Please sign in or create an

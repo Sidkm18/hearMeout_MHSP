@@ -7,7 +7,7 @@ export const Logo = ({ className }: { className?: string }) => {
     <Link href="/" className={cn("flex items-center gap-2", className)}>
       <BrainCircuit className="h-8 w-8 text-primary" />
       <h1 className="font-headline text-3xl font-bold text-primary">
-        Inner Space
+        HearMeOut
       </h1>
     </Link>
   );
