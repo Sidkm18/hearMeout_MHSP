@@ -8,6 +8,7 @@ import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWith
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Logo } from '../logo';
+import { useToast } from '@/hooks/use-toast';
 
 // Helper for anonymous ID generation
 const adjectives = ["Creative", "Brave", "Clever", "Gentle", "Happy", "Wise", "Witty", "Sunny", "Calm", "Kind"];
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
