@@ -19,6 +19,7 @@ import {
   BrainCircuit,
   Loader2,
   ListPlus,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,12 +38,22 @@ import { useRouter } from 'next/navigation';
 import { ChatbotModal } from '@/components/chatbot-modal';
 import Image from 'next/image';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, query, where, onSnapshot, Timestamp, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, where, onSnapshot, Timestamp, getDocs, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAvailability } from '@/hooks/use-availability';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 interface Appointment {
     id: string;
@@ -82,6 +93,12 @@ export default function StudentDashboard() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [isBooking, setIsBooking] = useState(false);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
+
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [selectedCounsellorForFeedback, setSelectedCounsellorForFeedback] = useState('');
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   
   const { availableSlots, isLoading: isLoadingSlots } = useAvailability(selectedCounsellor, date);
 
@@ -196,6 +213,47 @@ export default function StudentDashboard() {
       } finally {
           setIsBooking(false);
       }
+  }
+
+  const handleFeedbackSubmit = async () => {
+    if (!user || !selectedCounsellorForFeedback || feedbackRating === 0 || !feedbackComment) {
+        toast({
+            title: "Incomplete Feedback",
+            description: "Please select a counsellor, provide a rating and a comment.",
+            variant: "destructive"
+        });
+        return;
+    }
+    setIsSubmittingFeedback(true);
+    try {
+        const counsellor = counsellors.find(c => c.id === selectedCounsellorForFeedback);
+        await addDoc(collection(db, 'feedback'), {
+            studentId: user.uid,
+            studentName: user.name,
+            counsellorId: selectedCounsellorForFeedback,
+            counsellorName: counsellor?.name,
+            rating: feedbackRating,
+            comment: feedbackComment,
+            createdAt: serverTimestamp(),
+        });
+        toast({
+            title: "Thank You!",
+            description: "Your feedback has been submitted successfully."
+        });
+        setIsFeedbackModalOpen(false);
+        setSelectedCounsellorForFeedback('');
+        setFeedbackRating(0);
+        setFeedbackComment('');
+    } catch (error) {
+        console.error("Error submitting feedback: ", error);
+        toast({
+            title: "Submission Failed",
+            description: "Could not submit your feedback. Please try again.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsSubmittingFeedback(false);
+    }
   }
   
   if (!user) {
@@ -341,6 +399,15 @@ export default function StudentDashboard() {
                   </CardHeader>
                   <CardContent>
                     <Textarea placeholder="Let it all out... This is a private space for your thoughts, and nothing here will be saved or submitted." />
+                  </CardContent>
+                </Card>
+                 <Card className="rounded-2xl shadow-lg">
+                  <CardHeader>
+                    <CardTitle>Provide Feedback</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                     <p className="text-sm text-muted-foreground mb-4">Help us improve by sharing your experience with a counsellor.</p>
+                    <Button className="w-full" variant="outline" onClick={() => setIsFeedbackModalOpen(true)}>Give Feedback</Button>
                   </CardContent>
                 </Card>
               </div>
@@ -492,6 +559,66 @@ export default function StudentDashboard() {
         </Tabs>
       </main>
       <ChatbotModal open={isChatbotOpen} onOpenChange={setChatbotOpen} mood={"Neutral"} />
+
+       <Dialog open={isFeedbackModalOpen} onOpenChange={setIsFeedbackModalOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Provide Feedback</DialogTitle>
+            <DialogDescription>
+              Your feedback is anonymous and helps us improve our services.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="counsellor-select">Counsellor</Label>
+              <Select value={selectedCounsellorForFeedback} onValueChange={setSelectedCounsellorForFeedback}>
+                <SelectTrigger id="counsellor-select">
+                    <SelectValue placeholder="Select a counsellor" />
+                </SelectTrigger>
+                <SelectContent>
+                    {counsellors.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Rating</Label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Button
+                    key={star}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setFeedbackRating(star)}
+                    className={cn(feedbackRating >= star ? 'text-yellow-400' : 'text-muted-foreground')}
+                  >
+                    <Star className="h-6 w-6" fill={feedbackRating >= star ? 'currentColor' : 'none'} />
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="feedback-comment">Comments</Label>
+                <Textarea 
+                    id="feedback-comment"
+                    placeholder="Share your experience..."
+                    value={feedbackComment}
+                    onChange={e => setFeedbackComment(e.target.value)}
+                    rows={4}
+                />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+                <Button type="button" variant="secondary">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" onClick={handleFeedbackSubmit} disabled={isSubmittingFeedback}>
+              {isSubmittingFeedback ? <Loader2 className="animate-spin" /> : 'Submit Feedback'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

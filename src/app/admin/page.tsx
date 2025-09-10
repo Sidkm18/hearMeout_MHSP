@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect, useState } from 'react';
 import { Header } from '@/components/layout/header';
@@ -21,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, User as UserIcon, PlusCircle, Edit, Trash2, Loader2, Calendar } from 'lucide-react';
+import { Check, X, User as UserIcon, PlusCircle, Edit, Trash2, Loader2, Calendar, Star } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, Timestamp, query } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +72,15 @@ interface Appointment {
   time: string;
 }
 
+interface Feedback {
+    id: string;
+    studentName: string;
+    counsellorName: string;
+    comment: string;
+    rating: number;
+    createdAt: Timestamp;
+}
+
 const emptyResource: Omit<Resource, 'id'> = {
   title: '',
   type: 'video',
@@ -81,11 +91,6 @@ const emptyResource: Omit<Resource, 'id'> = {
   tags: '',
   uploaderName: '',
 };
-
-const mockFeedback = [
-    { student: 'John Doe', counsellor: 'Dr. Evelyn Reed', feedback: 'Very helpful session, felt understood.'},
-    { student: 'Jane Smith', counsellor: 'Dr. Evelyn Reed', feedback: 'Could provide more actionable advice.'},
-];
 
 const mockStudents = [
     { name: 'John Doe', year: '2nd Year', email: 'john.d@example.edu'},
@@ -101,6 +106,7 @@ export default function AdminDashboard() {
   const [approvals, setApprovals] = useState<UserApproval[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,8 +127,7 @@ export default function AdminDashboard() {
      const usersUnsubscribe = onSnapshot(query(collection(db, 'users')), (snapshot) => {
          const userList: UserApproval[] = [];
          snapshot.forEach(doc => {
-            // Assuming users have a 'status' field. If not, this needs adjustment.
-             const data = doc.data();
+            const data = doc.data();
              userList.push({ id: doc.id, ...(data as AppUser), status: data.status || 'Pending' } as UserApproval);
          });
          setApprovals(userList.filter(u => u.role === 'Counsellor' || u.role === 'Volunteer'));
@@ -155,10 +160,22 @@ export default function AdminDashboard() {
         toast({ title: "Error", description: "Could not fetch appointments.", variant: "destructive" });
     });
 
+     const feedbackUnsubscribe = onSnapshot(query(collection(db, 'feedback')), (snapshot) => {
+        const fetchedFeedback: Feedback[] = [];
+        snapshot.forEach((doc) => {
+            fetchedFeedback.push({ id: doc.id, ...(doc.data() as Omit<Feedback, 'id'>) });
+        });
+        setFeedback(fetchedFeedback.sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()));
+    }, (error) => {
+        console.error("Error fetching feedback: ", error);
+        toast({ title: "Error", description: "Could not fetch feedback.", variant: "destructive" });
+    });
+
      return () => {
          usersUnsubscribe();
          resourceUnsubscribe();
          apptUnsubscribe();
+         feedbackUnsubscribe();
      };
   }, [user, toast]);
 
@@ -277,11 +294,17 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle>Counsellor Feedback</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {mockFeedback.map((f, i) => (
+            <CardContent className="space-y-4 max-h-80 overflow-y-auto">
+              {feedback.map((f, i) => (
                 <div key={i} className="border p-3 rounded-lg">
-                    <p className="text-sm font-medium">{f.feedback}</p>
-                    <p className="text-xs text-muted-foreground mt-1">From: {f.student} | For: {f.counsellor}</p>
+                    <div className="flex items-center justify-between">
+                         <p className="text-sm font-medium">{f.comment}</p>
+                         <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
+                            <span className="font-bold">{f.rating}</span>
+                         </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">From: {f.studentName} | For: {f.counsellorName}</p>
                 </div>
               ))}
             </CardContent>
