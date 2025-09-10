@@ -90,8 +90,7 @@ export default function CounsellorDashboard() {
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    if (user.role !== 'Counsellor') {
+    if (user && user.role !== 'Counsellor') {
       router.push('/');
     }
   }, [user, router]);

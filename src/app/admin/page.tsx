@@ -95,8 +95,7 @@ export default function AdminDashboard() {
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    if (user.role !== 'Admin') {
+    if (user && user.role !== 'Admin') {
       router.push('/');
     }
   }, [user, router]);
