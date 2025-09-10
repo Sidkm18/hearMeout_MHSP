@@ -20,6 +20,7 @@ import {
   Loader2,
   ListPlus,
   Star,
+  ArrowDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -267,296 +268,285 @@ export default function StudentDashboard() {
   return (
     <>
       <Header />
-      <main className="container py-8">
-        <h2 className="font-headline text-4xl mb-6">
-          How are you doing today, {user.name}?
-        </h2>
-
-        <div className="flex justify-center mb-8 gap-4">
-             <Button size="lg" onClick={() => router.push('/journal')} className="rounded-full shadow-lg">
-                <ListPlus className="mr-2 h-5 w-5"/>
-                Track Today's Mood
-            </Button>
-            <Button size="lg" onClick={() => setChatbotOpen(true)} className="rounded-full shadow-lg">
-                <MessageSquare className="mr-2 h-5 w-5"/>
+      <main>
+        <section className="relative flex flex-col items-center justify-center text-center min-h-[calc(100vh-80px)]">
+            <h2 className="font-headline text-7xl mb-6">
+            How are you doing today, {user.name}?
+            </h2>
+             <Button size="lg" onClick={() => setChatbotOpen(true)} className="rounded-full shadow-lg text-lg py-8 px-8">
+                <MessageSquare className="mr-3 h-6 w-6"/>
                 Talk to my AI companion
             </Button>
-        </div>
-
-        <Tabs defaultValue="hear-me" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="hear-me">HearMe</TabsTrigger>
-            <TabsTrigger value="know-me">KnowMe</TabsTrigger>
-            <TabsTrigger value="heal-me">HealMe</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="hear-me" className="mt-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="lg:col-span-2 rounded-2xl shadow-lg">
-                <CardHeader>
-                  <CardTitle>Book a Counsellor</CardTitle>
-                  <CardDescription>
-                    Schedule a one-on-one session with a professional.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-6 md:grid-cols-2">
-                    <div>
-                        <Select value={selectedCounsellor} onValueChange={setSelectedCounsellor}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a therapist" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {counsellors.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                            </SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        className="rounded-md border mt-4"
-                        disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
-                        />
-                    </div>
-                    <div className="space-y-4">
-                        <div>
-                            <h4 className="font-semibold mb-2">Available Times</h4>
-                            {isLoadingSlots ? <Loader2 className="animate-spin" /> :
-                             availableSlots.length > 0 ? (
-                                <div className="grid grid-cols-2 gap-2">
-                                {availableSlots.map((time) => (
-                                    <Button 
-                                        key={time} 
-                                        variant={selectedTime === time ? 'default' : 'outline'}
-                                        onClick={() => setSelectedTime(time)}
-                                    >
-                                        {time}
-                                    </Button>
-                                ))}
-                                </div>
-                             ) : <p className="text-sm text-muted-foreground">
-                                {selectedCounsellor ? "No available slots for this day." : "Please select a counsellor first."}
-                                </p>
-                            }
-                        </div>
-                        <div>
-                           <Label htmlFor="reason">Reason for booking</Label>
-                           <Textarea 
-                                id="reason"
-                                placeholder="Briefly describe what you'd like to talk about..."
-                                value={reason}
-                                onChange={(e) => setReason(e.target.value)}
-                                className="mt-1"
-                           />
-                        </div>
-                         <div className="flex items-center space-x-2">
-                            <Checkbox id="share-info" checked={shareInfo} onCheckedChange={(checked) => setShareInfo(checked as boolean)} />
-                            <Label htmlFor="share-info" className="text-sm text-muted-foreground">I consent to sharing my medical test results with the counsellor.</Label>
-                        </div>
-                        <Button 
-                            className="w-full"
-                            onClick={handleBookAppointment}
-                            disabled={isBooking || !selectedCounsellor || !date || !selectedTime || !reason}
-                        >
-                            {isBooking ? <Loader2 className="animate-spin"/> : "Book Appointment"}
-                        </Button>
-                    </div>
-                </CardContent>
-                 <CardFooter className="flex-col items-start gap-4">
-                    <h4 className="font-semibold">Your Appointments</h4>
-                     {appointments.length > 0 ? (
-                        <ul className="space-y-2 w-full">
-                        {appointments.map(app => (
-                             <li key={app.id} className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg flex justify-between items-center">
-                                <span>With <b>{app.counsellorName}</b> on {new Date(app.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at {app.time}</span>
-                            </li>
-                        ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">No upcoming appointments.</p>
-                    )}
-                </CardFooter>
-              </Card>
-
-              <div className="space-y-6">
-                <Card className="rounded-2xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle>Community Forums</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">Connect with peers and share experiences.</p>
-                     <Button className="w-full" asChild>
-                      <Link href="/forums">Go to Forums</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-2xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle>I Want to Rant</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Textarea placeholder="Let it all out... This is a private space for your thoughts, and nothing here will be saved or submitted." />
-                  </CardContent>
-                </Card>
-                 <Card className="rounded-2xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle>Provide Feedback</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                     <p className="text-sm text-muted-foreground mb-4">Help us improve by sharing your experience with a counsellor.</p>
-                    <Button className="w-full" variant="outline" onClick={() => setIsFeedbackModalOpen(true)}>Give Feedback</Button>
-                  </CardContent>
-                </Card>
-              </div>
+            <div className="absolute bottom-10 animate-bounce">
+                <ArrowDown className="w-8 h-8 text-muted-foreground" />
             </div>
-          </TabsContent>
+        </section>
 
-          <TabsContent value="know-me" className="mt-6">
-             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="rounded-2xl shadow-lg">
+        <section id="dashboard-content" className="container py-12">
+            <Tabs defaultValue="hear-me" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="hear-me">HearMe</TabsTrigger>
+                <TabsTrigger value="know-me">KnowMe</TabsTrigger>
+                <TabsTrigger value="heal-me">HealMe</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="hear-me" className="mt-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="lg:col-span-2 rounded-2xl shadow-lg">
                     <CardHeader>
-                        <CardTitle>My Journal</CardTitle>
-                        <CardDescription>Reflect on your day and track your thoughts.</CardDescription>
+                    <CardTitle>Book a Counsellor</CardTitle>
+                    <CardDescription>
+                        Schedule a one-on-one session with a professional.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-6 md:grid-cols-2">
+                        <div>
+                            <Select value={selectedCounsellor} onValueChange={setSelectedCounsellor}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a therapist" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {counsellors.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                    {c.name}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                            <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={setDate}
+                            className="rounded-md border mt-4"
+                            disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
+                            />
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-semibold mb-2">Available Times</h4>
+                                {isLoadingSlots ? <Loader2 className="animate-spin" /> :
+                                availableSlots.length > 0 ? (
+                                    <div className="grid grid-cols-2 gap-2">
+                                    {availableSlots.map((time) => (
+                                        <Button 
+                                            key={time} 
+                                            variant={selectedTime === time ? 'default' : 'outline'}
+                                            onClick={() => setSelectedTime(time)}
+                                        >
+                                            {time}
+                                        </Button>
+                                    ))}
+                                    </div>
+                                ) : <p className="text-sm text-muted-foreground">
+                                    {selectedCounsellor ? "No available slots for this day." : "Please select a counsellor first."}
+                                    </p>
+                                }
+                            </div>
+                            <div>
+                            <Label htmlFor="reason">Reason for booking</Label>
+                            <Textarea 
+                                    id="reason"
+                                    placeholder="Briefly describe what you'd like to talk about..."
+                                    value={reason}
+                                    onChange={(e) => setReason(e.target.value)}
+                                    className="mt-1"
+                            />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="share-info" checked={shareInfo} onCheckedChange={(checked) => setShareInfo(checked as boolean)} />
+                                <Label htmlFor="share-info" className="text-sm text-muted-foreground">I consent to sharing my medical test results with the counsellor.</Label>
+                            </div>
+                            <Button 
+                                className="w-full"
+                                onClick={handleBookAppointment}
+                                disabled={isBooking || !selectedCounsellor || !date || !selectedTime || !reason}
+                            >
+                                {isBooking ? <Loader2 className="animate-spin"/> : "Book Appointment"}
+                            </Button>
+                        </div>
+                    </CardContent>
+                    <CardFooter className="flex-col items-start gap-4">
+                        <h4 className="font-semibold">Your Appointments</h4>
+                        {appointments.length > 0 ? (
+                            <ul className="space-y-2 w-full">
+                            {appointments.map(app => (
+                                <li key={app.id} className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg flex justify-between items-center">
+                                    <span>With <b>{app.counsellorName}</b> on {new Date(app.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at {app.time}</span>
+                                </li>
+                            ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No upcoming appointments.</p>
+                        )}
+                    </CardFooter>
+                </Card>
+
+                <div className="space-y-6">
+                    <Card className="rounded-2xl shadow-lg">
+                        <CardHeader>
+                            <CardTitle>My Journal</CardTitle>
+                            <CardDescription>A private space to track your mood and thoughts.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button className="w-full" asChild>
+                                <Link href="/journal"><ListPlus className="mr-2 h-5 w-5"/> Go to Journal</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                    <Card className="rounded-2xl shadow-lg">
+                    <CardHeader>
+                        <CardTitle>Community Forums</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">A private and secure space to write down your feelings.</p>
+                        <p className="text-sm text-muted-foreground mb-4">Connect with peers and share experiences.</p>
+                        <Button className="w-full" asChild>
+                        <Link href="/forums">Go to Forums</Link>
+                        </Button>
+                    </CardContent>
+                    </Card>
+                    <Card className="rounded-2xl shadow-lg">
+                    <CardHeader>
+                        <CardTitle>Provide Feedback</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">Help us improve by sharing your experience with a counsellor.</p>
+                        <Button className="w-full" variant="outline" onClick={() => setIsFeedbackModalOpen(true)}>Give Feedback</Button>
+                    </CardContent>
+                    </Card>
+                </div>
+                </div>
+            </TabsContent>
+
+            <TabsContent value="know-me" className="mt-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <Card className="rounded-2xl shadow-lg">
+                        <CardHeader>
+                            <CardTitle>Medical Tests</CardTitle>
+                            <CardDescription>Simple self-assessment questionnaires.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                                <li>PHQ-9 (Depression)</li>
+                                <li>GAD-7 (Anxiety)</li>
+                                <li>DASS-21</li>
+                            </ul>
+                        </CardContent>
+                        <CardFooter>
+                            <Button className="w-full" variant="secondary" asChild>
+                            <Link href="/medical-tests">Start Assessment</Link>
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                    <Card className="rounded-2xl shadow-lg">
+                    <CardHeader>
+                        <CardTitle>My Profile</CardTitle>
+                        <CardDescription>Manage your personal information.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">Keep your profile details up to date.</p>
                     </CardContent>
                     <CardFooter>
                         <Button className="w-full" asChild>
-                            <Link href="/journal">Open Journal</Link>
+                        <Link href="/student-profile">Go to Profile</Link>
                         </Button>
                     </CardFooter>
-                </Card>
+                    </Card>
+                </div>
+            </TabsContent>
+
+            <TabsContent value="heal-me" className="mt-6">
+                {isLoadingResources ? <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div> :
+                <div className="space-y-6">
                 <Card className="rounded-2xl shadow-lg">
                     <CardHeader>
-                        <CardTitle>Medical Tests</CardTitle>
-                        <CardDescription>Simple self-assessment questionnaires.</CardDescription>
+                    <CardTitle>Recommended Videos</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                            <li>PHQ-9 (Depression)</li>
-                            <li>GAD-7 (Anxiety)</li>
-                            <li>DASS-21</li>
-                        </ul>
+                    <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {resources.filter(r => r.type === 'video').map(res => (
+                        <Link href={res.link} key={res.id} target="_blank" className="group relative">
+                        <Image
+                            src={res.thumbnail || 'https://picsum.photos/600/400'}
+                            alt={res.title}
+                            width={600}
+                            height={400}
+                            className="rounded-lg aspect-video object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
+                            <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
+                            <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
+                        </div>
+                        </Link>
+                    ))}
                     </CardContent>
-                    <CardFooter>
-                        <Button className="w-full" variant="secondary" asChild>
-                           <Link href="/medical-tests">Start Assessment</Link>
-                        </Button>
-                    </CardFooter>
                 </Card>
+
                 <Card className="rounded-2xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle>My Profile</CardTitle>
-                    <CardDescription>Manage your personal information.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                     <p className="text-sm text-muted-foreground mb-4">Keep your profile details up to date.</p>
-                  </CardContent>
-                  <CardFooter>
-                    <Button className="w-full" asChild>
-                      <Link href="/student-profile">Go to Profile</Link>
-                    </Button>
-                  </CardFooter>
+                    <CardHeader>
+                    <CardTitle>Recommended Books</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {resources.filter(r => r.type === 'book').map(res => (
+                        <Link href={res.link} key={res.id} target="_blank" className="group relative">
+                        <Image
+                            src={res.thumbnail || 'https://picsum.photos/600/400'}
+                            alt={res.title}
+                            width={600}
+                            height={400}
+                            className="rounded-lg aspect-video object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
+                            <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
+                            <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
+                        </div>
+                        </Link>
+                    ))}
+                    </CardContent>
                 </Card>
-             </div>
-          </TabsContent>
+                
+                <Card className="rounded-2xl shadow-lg">
+                    <CardHeader>
+                    <CardTitle>Helpful Articles</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {resources.filter(r => r.type === 'article').map(res => (
+                        <Link href={res.link} key={res.id} target="_blank" className="group relative">
+                        <Image
+                            src={res.thumbnail || 'https://picsum.photos/600/400'}
+                            alt={res.title}
+                            width={600}
+                            height={400}
+                            className="rounded-lg aspect-video object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
+                            <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
+                            <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
+                        </div>
+                        </Link>
+                    ))}
+                    </CardContent>
+                </Card>
 
-          <TabsContent value="heal-me" className="mt-6">
-            {isLoadingResources ? <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div> :
-            <div className="space-y-6">
-              <Card className="rounded-2xl shadow-lg">
-                <CardHeader>
-                  <CardTitle>Recommended Videos</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {resources.filter(r => r.type === 'video').map(res => (
-                    <Link href={res.link} key={res.id} target="_blank" className="group relative">
-                      <Image
-                        src={res.thumbnail || 'https://picsum.photos/600/400'}
-                        alt={res.title}
-                        width={600}
-                        height={400}
-                        className="rounded-lg aspect-video object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
-                        <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
-                        <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl shadow-lg">
-                <CardHeader>
-                  <CardTitle>Recommended Books</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {resources.filter(r => r.type === 'book').map(res => (
-                     <Link href={res.link} key={res.id} target="_blank" className="group relative">
-                      <Image
-                        src={res.thumbnail || 'https://picsum.photos/600/400'}
-                        alt={res.title}
-                        width={600}
-                        height={400}
-                        className="rounded-lg aspect-video object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
-                        <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
-                         <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </CardContent>
-              </Card>
-              
-               <Card className="rounded-2xl shadow-lg">
-                <CardHeader>
-                  <CardTitle>Helpful Articles</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {resources.filter(r => r.type === 'article').map(res => (
-                     <Link href={res.link} key={res.id} target="_blank" className="group relative">
-                      <Image
-                        src={res.thumbnail || 'https://picsum.photos/600/400'}
-                        alt={res.title}
-                        width={600}
-                        height={400}
-                        className="rounded-lg aspect-video object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
-                        <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
-                         <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl shadow-lg mt-6">
-                <CardHeader>
-                  <CardTitle>Meditation & Music</CardTitle>
-                  <CardDescription>Find your inner peace.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2">
-                  <Button asChild className="h-24">
-                    <Link href="/self-help-resources">Start a Guided Session</Link>
-                  </Button>
-                  <Button variant="secondary" className="h-24" asChild>
-                     <Link href={resources.find(r => r.type === 'spotify')?.link || '#'} target="_blank">
-                        <Headphones className="mr-2" /> Listen on Spotify
-                     </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-            }
-          </TabsContent>
-        </Tabs>
+                <Card className="rounded-2xl shadow-lg mt-6">
+                    <CardHeader>
+                    <CardTitle>Meditation & Music</CardTitle>
+                    <CardDescription>Find your inner peace.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 md:grid-cols-2">
+                    <Button asChild className="h-24">
+                        <Link href="/self-help-resources">Start a Guided Session</Link>
+                    </Button>
+                    <Button variant="secondary" className="h-24" asChild>
+                        <Link href={resources.find(r => r.type === 'spotify')?.link || '#'} target="_blank">
+                            <Headphones className="mr-2" /> Listen on Spotify
+                        </Link>
+                    </Button>
+                    </CardContent>
+                </Card>
+                </div>
+                }
+            </TabsContent>
+            </Tabs>
+        </section>
       </main>
       <ChatbotModal open={isChatbotOpen} onOpenChange={setChatbotOpen} mood={"Neutral"} />
 
@@ -622,3 +612,5 @@ export default function StudentDashboard() {
     </>
   );
 }
+
+    
