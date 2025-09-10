@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
-export default function StudentProfilePage() {
+export default function AdminProfilePage() {
   const { user } = useAuth();
 
   if (!user) {
@@ -41,12 +41,6 @@ export default function StudentProfilePage() {
                 <Label htmlFor="role">Role</Label>
                 <Input id="role" value={user.role} readOnly />
             </div>
-             {user.role === 'Student' && user.academicYear && (
-                <div className="space-y-2">
-                    <Label htmlFor="academicYear">Academic Year</Label>
-                    <Input id="academicYear" value={user.academicYear} readOnly />
-                </div>
-             )}
           </CardContent>
         </Card>
       </main>

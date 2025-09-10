@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User, UserRole } from '@/lib/types';
@@ -13,7 +14,7 @@ export interface AuthContextType {
   loading: boolean;
   error: string | null;
   signIn: (email: string, pass: string) => Promise<void>;
-  signUp: (email: string, pass: string, role: UserRole, name: string) => Promise<void>;
+  signUp: (email: string, pass: string, role: UserRole, name: string, academicYear?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -36,10 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = userDoc.data() as Omit<User, 'uid'>;
           const userWithUid: User = { ...userData, uid: firebaseUser.uid };
           setUser(userWithUid);
-          const userPath = `/${userWithUid.role.toLowerCase()}`;
-          if (pathname !== userPath && pathname !== '/student-profile' && pathname !== '/counsellor-profile') {
-             // Avoid redirecting if already on a valid page for that role
-          }
         } else {
           // If user exists in Auth but not Firestore, log them out.
           await signOut(auth);
@@ -48,15 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         setUser(null);
-         if (pathname !== '/') {
-            // router.push('/'); // This can cause issues with routing, disabling for now
-        }
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [pathname, router]);
+  }, [router]);
 
   const signIn = async (email: string, pass: string) => {
     setAuthLoading(true);
@@ -81,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  const signUp = async (email: string, pass: string, role: UserRole, name: string) => {
+  const signUp = async (email: string, pass: string, role: UserRole, name: string, academicYear?: string) => {
     setAuthLoading(true);
     setError(null);
     try {
@@ -92,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name,
         email: firebaseUser.email!,
         role,
+        ...(role === 'Student' && { academicYear }),
       };
 
       await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
@@ -121,8 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  if (loading && pathname === '/') {
-    return (
+  if (loading && !user && pathname !== '/') {
+     return (
        <div className="flex min-h-screen w-full flex-col items-center justify-center p-4">
         <Logo />
         <p className="mt-4 text-muted-foreground">Loading...</p>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -32,6 +33,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [academicYear, setAcademicYear] = useState('');
 
   const { user, signUp, signIn, error, loading } = useAuth();
   const router = useRouter();
@@ -45,7 +47,7 @@ export default function LoginPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signUp(email, password, role, name);
+    await signUp(email, password, role, name, academicYear);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -163,6 +165,19 @@ export default function LoginPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                 {role === 'Student' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="academic-year-signup">Academic Year</Label>
+                    <Input
+                      id="academic-year-signup"
+                      type="text"
+                      placeholder="e.g., 2nd Year, Junior"
+                      value={academicYear}
+                      onChange={(e) => setAcademicYear(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? <Loader2 className="animate-spin" /> : 'Sign Up'}

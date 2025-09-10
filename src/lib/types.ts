@@ -1,3 +1,4 @@
+
 export type UserRole = 'Student' | 'Counsellor' | 'Volunteer' | 'Admin';
 
 export interface User {
@@ -5,4 +6,5 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  academicYear?: string; // Added for students
 }

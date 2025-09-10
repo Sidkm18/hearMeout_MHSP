@@ -26,6 +26,8 @@ export function Header() {
         return '/student-profile';
       case 'Counsellor':
         return '/counsellor-profile';
+       case 'Admin':
+        return '/admin/profile';
       default:
         return '#';
     }
@@ -78,7 +80,7 @@ export function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {(user.role === 'Student' || user.role === 'Counsellor') && (
+                {(user.role === 'Student' || user.role === 'Counsellor' || user.role === 'Admin') && (
                   <>
                     <DropdownMenuItem asChild>
                        <Link href={getProfileLink()}>
