@@ -481,7 +481,7 @@ export default function StudentDashboard() {
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
                   <Button asChild className="h-24">
-                    <Link href="/meditation">Start a Guided Session</Link>
+                    <Link href="/self-help-resources">Start a Guided Session</Link>
                   </Button>
                   <Button variant="secondary" className="h-24" asChild>
                      <Link href={resources.find(r => r.type === 'spotify')?.link || '#'} target="_blank">

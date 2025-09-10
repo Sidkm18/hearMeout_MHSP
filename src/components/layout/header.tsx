@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -41,7 +42,7 @@ export function Header() {
                 <div className="hidden md:flex items-center gap-4 text-sm font-medium">
                     <Link href="/student" className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
                     <Link href="/journal" className="text-muted-foreground transition-colors hover:text-foreground">Journal</Link>
-                    <Link href="/meditation" className="text-muted-foreground transition-colors hover:text-foreground">Meditation</Link>
+                    <Link href="/self-help-resources" className="text-muted-foreground transition-colors hover:text-foreground">Self Help</Link>
                     <Link href="/forums" className="text-muted-foreground transition-colors hover:text-foreground">Forums</Link>
                 </div>
             )}
