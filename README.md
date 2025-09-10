@@ -98,6 +98,40 @@ Follow these steps to get a local copy up and running.
 
 ---
 
-## 📄 License
+## 👨‍💻 Contributors
 
-This project is distributed under the MIT License. See `LICENSE` for more information.
+Thanks to all these amazing people who made **hearMeout** possible! 💙
+
+<p align="center">
+  <a href="https://github.com/sudoDreamer">
+    <img src="https://github.com/sudoDreamer.png" width="100px;" alt=""/>
+    <br />
+    <sub><b>Shounak Dutta</b></sub>
+  </a>
+  <a href="https://github.com/AryannnG">
+    <img src="https://github.com/AryannnG" width="100px;" alt=""/>
+    <br />
+    <sub><b>Aryan Gaikwad</b></sub>
+  </a>
+  <a href="https://github.com/swanandi22">
+    <img src="https://github.com/swanandi22.png" width="100px;" alt=""/>
+    <br />
+    <sub><b>Swanandi Nikam</b></sub>
+  </a>
+  <a href="https://github.com/samikshaphirangi">
+    <img src="https://github.com/samikshaphirangi.png" width="100px;" alt=""/>
+    <br />
+    <sub><b>Samiksha Phirangi</b></sub>
+  </a>
+  <a href="https://github.com/NirvedGhose">
+    <img src="https://github.com/NirvedGhose.png" width="100px;" alt=""/>
+    <br />
+    <sub><b>Nirved Ghose</b></sub>
+  </a>
+  <a href="https://github.com/sidkm18">
+    <img src="https://github.com/sidkm18.png" width="100px;" alt=""/>
+    <br />
+    <sub><b>Sidharth Kamath</b></sub>
+  </a>
+</p>
+
