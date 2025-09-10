@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -9,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Heart, Phone, MessageSquare, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
 
 interface EmergencyModalProps {
   isOpen: boolean;
@@ -30,8 +32,10 @@ export function EmergencyModal({ isOpen, onOpenChange }: EmergencyModalProps) {
         </DialogHeader>
 
         <div className="py-4 space-y-6">
-          <Button size="lg" className="w-full bg-green-100 text-green-800 hover:bg-green-200">
-            <Heart className="mr-2 h-5 w-5" /> Start Calming Exercise
+           <Button asChild size="lg" className="w-full bg-green-100 text-green-800 hover:bg-green-200">
+            <Link href="/breathing-exercise">
+                <Heart className="mr-2 h-5 w-5" /> Start Calming Exercise
+            </Link>
           </Button>
 
           <div>
