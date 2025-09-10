@@ -21,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, User as UserIcon, PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Check, X, User as UserIcon, PlusCircle, Edit, Trash2, Loader2, Calendar } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, Timestamp, query } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { format } from 'date-fns';
 
 interface UserApproval extends AppUser {
     id: string;
@@ -60,6 +61,14 @@ interface Resource {
   duration?: string;
   tags?: string;
   uploaderName?: string;
+}
+
+interface Appointment {
+  id: string;
+  studentName: string;
+  counsellorName: string;
+  date: string;
+  time: string;
 }
 
 const emptyResource: Omit<Resource, 'id'> = {
@@ -91,6 +100,7 @@ export default function AdminDashboard() {
 
   const [approvals, setApprovals] = useState<UserApproval[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -133,10 +143,22 @@ export default function AdminDashboard() {
         console.error("Error fetching resources: ", error);
         toast({ title: "Error", description: "Could not fetch resources.", variant: "destructive" });
     });
+    
+     const apptUnsubscribe = onSnapshot(query(collection(db, 'appointments')), (snapshot) => {
+        const fetchedAppointments: Appointment[] = [];
+        snapshot.forEach((doc) => {
+            fetchedAppointments.push({ id: doc.id, ...(doc.data() as Omit<Appointment, 'id'>) });
+        });
+        setAppointments(fetchedAppointments.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+    }, (error) => {
+        console.error("Error fetching appointments: ", error);
+        toast({ title: "Error", description: "Could not fetch appointments.", variant: "destructive" });
+    });
 
      return () => {
          usersUnsubscribe();
          resourceUnsubscribe();
+         apptUnsubscribe();
      };
   }, [user, toast]);
 
@@ -314,6 +336,32 @@ export default function AdminDashboard() {
                             <TableCell>{s.name}</TableCell>
                             <TableCell>{s.year}</TableCell>
                             <TableCell>{s.email}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+           <Card className="md:col-span-3 rounded-2xl shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Calendar /> All Appointments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Student</TableHead>
+                        <TableHead>Counsellor</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {appointments.map(a => (
+                        <TableRow key={a.id}>
+                            <TableCell>{a.studentName}</TableCell>
+                            <TableCell>{a.counsellorName}</TableCell>
+                            <TableCell>{format(new Date(a.date), 'PPP')} at {a.time}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>

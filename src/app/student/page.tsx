@@ -42,6 +42,8 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, query, where, onSnapshot, Timestamp, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Appointment {
     id: string;
@@ -75,6 +77,8 @@ export default function StudentDashboard() {
   const [counsellors, setCounsellors] = useState<Counsellor[]>([]);
   const [selectedCounsellor, setSelectedCounsellor] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [reason, setReason] = useState('');
+  const [shareInfo, setShareInfo] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [isBooking, setIsBooking] = useState(false);
@@ -144,10 +148,10 @@ export default function StudentDashboard() {
   }, [user]);
   
   const handleBookAppointment = async () => {
-      if (!user || !selectedCounsellor || !date || !selectedTime) {
+      if (!user || !selectedCounsellor || !date || !selectedTime || !reason) {
           toast({
               title: "Incomplete Details",
-              description: "Please select a counsellor, date, and time.",
+              description: "Please select a counsellor, date, time and provide a reason.",
               variant: "destructive"
           });
           return;
@@ -162,6 +166,8 @@ export default function StudentDashboard() {
             counsellorName: counsellor?.name,
             date: date.toISOString().split('T')[0], // YYYY-MM-DD
             time: selectedTime,
+            reason: reason,
+            shareMedicalInfo: shareInfo,
             createdAt: Timestamp.now(),
         });
         toast({
@@ -170,6 +176,8 @@ export default function StudentDashboard() {
         })
         setSelectedCounsellor('');
         setSelectedTime('');
+        setReason('');
+        setShareInfo(false);
         setDate(new Date());
 
       } catch (error) {
@@ -249,23 +257,39 @@ export default function StudentDashboard() {
                         disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
                         />
                     </div>
-                    <div>
-                        <h4 className="font-semibold mb-2">Available Times</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                        {availableTimes.map((time) => (
-                            <Button 
-                                key={time} 
-                                variant={selectedTime === time ? 'default' : 'outline'}
-                                onClick={() => setSelectedTime(time)}
-                            >
-                                {time}
-                            </Button>
-                        ))}
+                    <div className="space-y-4">
+                        <div>
+                            <h4 className="font-semibold mb-2">Available Times</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                            {availableTimes.map((time) => (
+                                <Button 
+                                    key={time} 
+                                    variant={selectedTime === time ? 'default' : 'outline'}
+                                    onClick={() => setSelectedTime(time)}
+                                >
+                                    {time}
+                                </Button>
+                            ))}
+                            </div>
+                        </div>
+                        <div>
+                           <Label htmlFor="reason">Reason for booking</Label>
+                           <Textarea 
+                                id="reason"
+                                placeholder="Briefly describe what you'd like to talk about..."
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                className="mt-1"
+                           />
+                        </div>
+                         <div className="flex items-center space-x-2">
+                            <Checkbox id="share-info" checked={shareInfo} onCheckedChange={(checked) => setShareInfo(checked as boolean)} />
+                            <Label htmlFor="share-info" className="text-sm text-muted-foreground">I consent to sharing my medical test results with the counsellor.</Label>
                         </div>
                         <Button 
-                            className="w-full mt-4"
+                            className="w-full"
                             onClick={handleBookAppointment}
-                            disabled={isBooking || !selectedCounsellor || !date || !selectedTime}
+                            disabled={isBooking || !selectedCounsellor || !date || !selectedTime || !reason}
                         >
                             {isBooking ? <Loader2 className="animate-spin"/> : "Book Appointment"}
                         </Button>

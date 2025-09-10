@@ -21,7 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Loader2, PlusCircle, Trash2, Edit } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, AlertCircle } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
@@ -45,6 +45,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface Appointment {
   id: string;
@@ -53,6 +64,7 @@ interface Appointment {
   date: string; 
   time: string;
   reason?: string; 
+  shareMedicalInfo: boolean;
 }
 
 interface Resource {
@@ -92,6 +104,10 @@ export default function CounsellorDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [currentResource, setCurrentResource] = useState<Omit<Resource, 'id'> | Resource>(emptyResource);
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
+  
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertContent, setAlertContent] = useState({ title: '', description: ''});
+
 
   useEffect(() => {
     if (user && user.role !== 'Counsellor') {
@@ -120,6 +136,7 @@ export default function CounsellorDashboard() {
             date: data.date,
             time: data.time,
             reason: data.reason || 'Not specified',
+            shareMedicalInfo: data.shareMedicalInfo || false,
           });
         });
         setAppointments(
@@ -209,6 +226,20 @@ export default function CounsellorDashboard() {
         toast({ title: 'Error', description: 'Failed to delete resource.', variant: 'destructive' });
     }
   }
+  
+  const showMedicalInfo = (appointment: Appointment) => {
+    if(appointment.shareMedicalInfo) {
+         setAlertContent({ title: `${appointment.studentName}'s Medical Info`, description: "PHQ-9 Score: 12 (Moderate Depression), GAD-7 Score: 9 (Moderate Anxiety). This is placeholder data." });
+    } else {
+        setAlertContent({ title: `Consent Not Provided`, description: `${appointment.studentName} has not consented to sharing their medical test information.` });
+    }
+    setIsAlertOpen(true);
+  }
+  
+  const showPersonalInfo = (appointment: Appointment) => {
+     setAlertContent({ title: `${appointment.studentName}'s Personal Info`, description: `Email: (student's email) | Year: (student's year). This is placeholder data.` });
+     setIsAlertOpen(true);
+  }
 
   if (!user || user.role !== 'Counsellor') {
     return (
@@ -269,13 +300,13 @@ export default function CounsellorDashboard() {
                         <AccordionContent>
                           <div className="px-4 space-y-3">
                              <p className="text-sm">
-                              This section can be expanded to show more student information.
+                              <strong>Reason:</strong> {session.reason}
                             </p>
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" onClick={() => showMedicalInfo(session)}>
                                 Medical Info
                               </Button>
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" onClick={() => showPersonalInfo(session)}>
                                 Personal Info
                               </Button>
                             </div>
@@ -429,6 +460,20 @@ export default function CounsellorDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertCircle/>{alertContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertContent.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setIsAlertOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
