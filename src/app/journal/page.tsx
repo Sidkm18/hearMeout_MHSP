@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -162,9 +163,10 @@ export default function JournalPage() {
           userId: user.uid,
           createdAt: serverTimestamp(),
         };
-        await addDoc(collection(db, 'journalEntries'), newEntryData);
+        const newDocRef = await addDoc(collection(db, 'journalEntries'), newEntryData);
         toast({ title: 'Success', description: 'New journal entry saved.' });
         handleNewEntry();
+        setEditingId(newDocRef.id);
       }
     } catch (error) {
       console.error('Error saving entry:', error);
@@ -252,7 +254,7 @@ export default function JournalPage() {
                            <div key={entry.id} onClick={() => handleSelectEntry(entry)} className="p-4 rounded-lg cursor-pointer border hover:bg-accent transition-colors">
                              <h3 className="font-semibold">{entry.title || "Journal Entry"}</h3>
                              <p className="text-sm text-muted-foreground">
-                                {format(entry.createdAt.toDate(), 'MMMM dd, yyyy')}
+                                {entry.createdAt ? format(entry.createdAt.toDate(), 'MMMM dd, yyyy') : 'Date pending...'}
                              </p>
                            </div>
                         ))}
@@ -267,7 +269,7 @@ export default function JournalPage() {
             <Card className="rounded-2xl shadow-lg">
                 <CardHeader className="flex flex-row justify-between items-center">
                     <div>
-                        <CardTitle className="flex items-center gap-2"><Heart className="text-primary"/> New Journal Entry</CardTitle>
+                        <CardTitle className="flex items-center gap-2"><Heart className="text-primary"/> {editingId ? 'Edit Journal Entry' : 'New Journal Entry'}</CardTitle>
                     </div>
                     <Badge variant="outline">{currentEntry.overallMood}/10 - {moodValueToLabel(currentEntry.overallMood)}</Badge>
                 </CardHeader>
@@ -351,7 +353,12 @@ export default function JournalPage() {
              <Card className="rounded-2xl shadow-lg">
                 <CardHeader>
                     <div className="flex justify-between items-center">
-                        <CardTitle>Your Thoughts</CardTitle>
+                         <Input 
+                            value={currentEntry.title}
+                            onChange={(e) => setCurrentEntry({...currentEntry, title: e.target.value})}
+                            placeholder="Give your entry a title..."
+                            className="text-lg font-semibold w-full border-0 shadow-none focus-visible:ring-0"
+                         />
                         <Button variant="outline"><BrainCircuit className="mr-2"/> Prompts</Button>
                     </div>
                 </CardHeader>
@@ -385,3 +392,5 @@ export default function JournalPage() {
     </>
   );
 }
+
+    
