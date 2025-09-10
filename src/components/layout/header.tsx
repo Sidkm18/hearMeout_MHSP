@@ -38,11 +38,24 @@ export function Header() {
         <nav className="flex items-center gap-4">
           {user ? (
             <>
-            {user.role === 'Student' && (
+            {(user.role === 'Student' || user.role === 'Admin') && (
                 <div className="hidden md:flex items-center gap-4 text-sm font-medium">
-                    <Link href="/student" className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
-                    <Link href="/journal" className="text-muted-foreground transition-colors hover:text-foreground">Journal</Link>
+                    <Link href={`/${user.role.toLowerCase()}`} className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
+                    {user.role === 'Student' && <Link href="/journal" className="text-muted-foreground transition-colors hover:text-foreground">Journal</Link>}
                     <Link href="/self-help-resources" className="text-muted-foreground transition-colors hover:text-foreground">Self Help</Link>
+                    <Link href="/forums" className="text-muted-foreground transition-colors hover:text-foreground">Forums</Link>
+                </div>
+            )}
+             {user.role === 'Counsellor' && (
+                <div className="hidden md:flex items-center gap-4 text-sm font-medium">
+                    <Link href="/counsellor" className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
+                    <Link href="/self-help-resources" className="text-muted-foreground transition-colors hover:text-foreground">Self Help</Link>
+                    <Link href="/forums" className="text-muted-foreground transition-colors hover:text-foreground">Forums</Link>
+                </div>
+            )}
+             {user.role === 'Volunteer' && (
+                <div className="hidden md:flex items-center gap-4 text-sm font-medium">
+                    <Link href="/volunteer" className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
                     <Link href="/forums" className="text-muted-foreground transition-colors hover:text-foreground">Forums</Link>
                 </div>
             )}

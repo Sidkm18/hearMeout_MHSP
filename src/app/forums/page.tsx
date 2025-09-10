@@ -165,7 +165,7 @@ export default function ForumsPage() {
           </div>
 
           <div className="space-y-6 lg:sticky top-28 h-fit">
-            {user?.role === 'Student' && (
+            {(user?.role === 'Student' || user?.role === 'Admin') && (
               <Card className="rounded-2xl shadow-lg">
                 <CardHeader>
                   <CardTitle>Start a New Discussion</CardTitle>
