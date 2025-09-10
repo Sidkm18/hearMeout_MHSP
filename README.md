@@ -109,7 +109,7 @@ Thanks to all these amazing people who made **hearMeout** possible! 💙
     <sub><b>Shounak Dutta</b></sub>
   </a>
   <a href="https://github.com/AryannnG">
-    <img src="https://github.com/AryannnG" width="100px;" alt=""/>
+    <img src="https://github.com/AryannnG.png" width="100px;" alt=""/>
     <br />
     <sub><b>Aryan Gaikwad</b></sub>
   </a>
@@ -134,4 +134,3 @@ Thanks to all these amazing people who made **hearMeout** possible! 💙
     <sub><b>Sidharth Kamath</b></sub>
   </a>
 </p>
-
