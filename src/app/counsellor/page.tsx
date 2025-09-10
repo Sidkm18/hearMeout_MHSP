@@ -273,7 +273,7 @@ export default function CounsellorDashboard() {
   }
   
   const showPersonalInfo = (appointment: Appointment) => {
-     setAlertContent({ title: `${appointment.studentName}'s Personal Info`, description: `Email: (student's email) | Year: (student's year). This is placeholder data.` });
+     setAlertContent({ title: `${appointment.studentName}'s Personal Info`, description: `This is placeholder data. A full implementation would fetch the student's email and academic year from the database.` });
      setIsAlertOpen(true);
   }
 
@@ -608,3 +608,5 @@ export default function CounsellorDashboard() {
     </>
   );
 }
+
+    
