@@ -16,6 +16,7 @@ import {
   doc,
   serverTimestamp,
   Timestamp,
+  getDoc,
 } from 'firebase/firestore';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
@@ -46,9 +47,21 @@ import {
   Loader2,
   CalendarDays,
   Tag,
+  Lightbulb,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { generateJournalPrompts, type GenerateJournalPromptsOutput } from '@/ai/flows/generate-journal-prompts';
+
 
 export interface JournalEntry {
   id?: string;
@@ -100,6 +113,11 @@ export default function JournalPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
+  const [isGeneratingPrompts, setIsGeneratingPrompts] = useState(false);
+  const [generatedPrompts, setGeneratedPrompts] = useState<string[]>([]);
+
 
   useEffect(() => {
     if (!user) {
@@ -165,8 +183,12 @@ export default function JournalPage() {
         };
         const newDocRef = await addDoc(collection(db, 'journalEntries'), newEntryData);
         toast({ title: 'Success', description: 'New journal entry saved.' });
-        handleNewEntry();
-        setEditingId(newDocRef.id);
+        handleNewEntry(); // This clears the form for a new entry
+        // We might want to select the new entry instead
+        const newEntrySnapshot = await getDoc(newDocRef);
+        handleSelectEntry({ id: newDocRef.id, ...newEntrySnapshot.data() } as JournalEntry);
+
+
       }
     } catch (error) {
       console.error('Error saving entry:', error);
@@ -190,6 +212,31 @@ export default function JournalPage() {
     } finally {
         setIsSaving(false);
     }
+  }
+  
+  const handleGeneratePrompts = async () => {
+    setIsGeneratingPrompts(true);
+    setGeneratedPrompts([]);
+    try {
+        const response = await generateJournalPrompts({
+            mood: currentEntry.overallMood,
+            emotions: currentEntry.specificEmotions,
+        });
+        setGeneratedPrompts(response.prompts);
+    } catch (error) {
+        console.error("Error generating prompts:", error);
+        toast({ title: 'Error', description: 'Could not generate prompts. Please try again.', variant: 'destructive' });
+    } finally {
+        setIsGeneratingPrompts(false);
+    }
+  };
+  
+  const handleInsertPrompt = (prompt: string) => {
+    setCurrentEntry(prev => ({
+        ...prev,
+        content: prev.content ? `${prev.content}\n\n${prompt}` : prompt
+    }));
+    setIsPromptModalOpen(false);
   }
 
   const moodValueToLabel = (value: number): string => {
@@ -251,7 +298,7 @@ export default function JournalPage() {
                     <div className="space-y-3">
                          <Button onClick={handleNewEntry} className="w-full"><Plus className="mr-2"/> New Entry</Button>
                         {entries.map(entry => (
-                           <div key={entry.id} onClick={() => handleSelectEntry(entry)} className="p-4 rounded-lg cursor-pointer border hover:bg-accent transition-colors">
+                           <div key={entry.id} onClick={() => handleSelectEntry(entry)} className={cn("p-4 rounded-lg cursor-pointer border hover:bg-accent transition-colors", editingId === entry.id && "bg-accent border-primary")}>
                              <h3 className="font-semibold">{entry.title || "Journal Entry"}</h3>
                              <p className="text-sm text-muted-foreground">
                                 {entry.createdAt ? format(entry.createdAt.toDate(), 'MMMM dd, yyyy') : 'Date pending...'}
@@ -359,7 +406,7 @@ export default function JournalPage() {
                             placeholder="Give your entry a title..."
                             className="text-lg font-semibold w-full border-0 shadow-none focus-visible:ring-0"
                          />
-                        <Button variant="outline"><BrainCircuit className="mr-2"/> Prompts</Button>
+                        <Button variant="outline" onClick={() => setIsPromptModalOpen(true)}><BrainCircuit className="mr-2"/> Prompts</Button>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -389,8 +436,43 @@ export default function JournalPage() {
           </div>
         </div>
       </main>
+      
+      <Dialog open={isPromptModalOpen} onOpenChange={setIsPromptModalOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><Lightbulb /> AI Journal Prompts</DialogTitle>
+                <DialogDescription>
+                    Here are some personalized prompts based on your mood.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                {isGeneratingPrompts ? (
+                    <div className="flex justify-center items-center h-24">
+                        <Loader2 className="animate-spin text-primary" />
+                    </div>
+                ) : generatedPrompts.length > 0 ? (
+                    <div className="space-y-3">
+                        {generatedPrompts.map((prompt, index) => (
+                            <div key={index} className="p-3 bg-muted/50 rounded-lg flex justify-between items-center">
+                                <p className="text-sm">{prompt}</p>
+                                <Button size="sm" onClick={() => handleInsertPrompt(prompt)}>Insert</Button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                   <p className="text-center text-muted-foreground text-sm">Click below to generate prompts.</p>
+                )}
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="secondary">Close</Button>
+                </DialogClose>
+                <Button onClick={handleGeneratePrompts} disabled={isGeneratingPrompts}>
+                    {isGeneratingPrompts ? <Loader2 className="animate-spin" /> : 'Generate New Prompts'}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
-
-    
