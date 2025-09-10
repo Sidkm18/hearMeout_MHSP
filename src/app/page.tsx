@@ -174,7 +174,6 @@ export default function LoginPage() {
                       placeholder="e.g., 2nd Year, Junior"
                       value={academicYear}
                       onChange={(e) => setAcademicYear(e.target.value)}
-                      required
                     />
                   </div>
                 )}

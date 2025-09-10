@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-         if (userData.role !== 'Student' && userData.status !== 'Approved') {
+         if ((userData.role === 'Counsellor' || userData.role === 'Volunteer') && userData.status !== 'Approved') {
             throw new Error(`Your ${userData.role} account is pending approval from an administrator.`);
         }
         const userWithUid: User = {
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: firebaseUser.email!,
         role,
         anonymousId: generateAnonymousId(),
-        status: role === 'Student' ? 'Approved' : 'Pending', // Auto-approve students
+        status: (role === 'Student' || role === 'Admin') ? 'Approved' : 'Pending', // Auto-approve students & admins
         ...(role === 'Student' && { academicYear }),
       };
 
