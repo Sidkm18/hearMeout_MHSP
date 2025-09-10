@@ -48,8 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
-          const userData = userDoc.data() as Omit<User, 'uid'>;
-          const userWithUid: User = { ...userData, uid: firebaseUser.uid };
+          const userData = userDoc.data();
+          const userWithUid: User = { 
+              uid: firebaseUser.uid,
+              name: userData.name,
+              email: userData.email,
+              role: userData.role,
+              status: userData.status,
+              anonymousId: userData.anonymousId,
+              academicYear: userData.academicYear
+           };
           setUser(userWithUid);
         } else {
           // If user exists in Auth but not Firestore, log them out.
@@ -74,11 +82,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const firebaseUser = userCredential.user;
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (userDoc.exists()) {
-        const userData = userDoc.data() as Omit<User, 'uid'>;
+        const userData = userDoc.data();
          if (userData.role !== 'Student' && userData.status !== 'Approved') {
             throw new Error(`Your ${userData.role} account is pending approval from an administrator.`);
         }
-        const userWithUid: User = { ...userData, uid: firebaseUser.uid };
+        const userWithUid: User = {
+            uid: firebaseUser.uid,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            status: userData.status,
+            anonymousId: userData.anonymousId,
+            academicYear: userData.academicYear
+        };
         setUser(userWithUid);
         router.push(`/${userWithUid.role.toLowerCase()}`);
       } else {

@@ -88,6 +88,10 @@ export default function ForumsPage() {
       toast({ title: "Incomplete Post", description: "Please provide a title and content for your post.", variant: "destructive" });
       return;
     }
+    if (!user.anonymousId) {
+      toast({ title: "Error", description: "Your anonymous ID is not available. Please try logging in again.", variant: "destructive" });
+      return;
+    }
 
     setIsPosting(true);
     try {
