@@ -10,7 +10,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Loader2, PlusCircle, Trash2, Edit, AlertCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, AlertCircle, Clock, X } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
@@ -54,8 +53,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useCounsellorAvailability, type Availability } from '@/hooks/use-availability';
+import { availableTimes as allPossibleTimes } from '@/lib/data';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface Appointment {
   id: string;
@@ -90,6 +92,8 @@ const emptyResource: Omit<Resource, 'id'> = {
   uploaderName: '',
 };
 
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 export default function CounsellorDashboard() {
   const { user } = useAuth();
   const router = useRouter();
@@ -107,6 +111,17 @@ export default function CounsellorDashboard() {
   
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [alertContent, setAlertContent] = useState({ title: '', description: ''});
+  
+  const { availability, saveAvailability, isLoading: isLoadingAvailability } = useCounsellorAvailability(user?.uid || '');
+  const [isSavingAvailability, setIsSavingAvailability] = useState(false);
+  const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
+  const [currentAvailability, setCurrentAvailability] = useState<Availability>({});
+
+  useEffect(() => {
+    if (availability) {
+        setCurrentAvailability(availability);
+    }
+  }, [availability]);
 
 
   useEffect(() => {
@@ -241,6 +256,31 @@ export default function CounsellorDashboard() {
      setIsAlertOpen(true);
   }
 
+  const handleToggleTimeSlot = (day: string, time: string) => {
+    setCurrentAvailability(prev => {
+        const daySlots = prev[day] || [];
+        const newSlots = daySlots.includes(time)
+            ? daySlots.filter(t => t !== time)
+            : [...daySlots, time].sort();
+        return { ...prev, [day]: newSlots };
+    });
+  };
+
+  const handleSaveAvailability = async () => {
+    setIsSavingAvailability(true);
+    try {
+        await saveAvailability(currentAvailability);
+        toast({ title: 'Success', description: 'Your availability has been updated.' });
+        setIsAvailabilityModalOpen(false);
+    } catch (error) {
+        console.error("Error saving availability: ", error);
+        toast({ title: 'Error', description: 'Failed to save availability.', variant: 'destructive' });
+    } finally {
+        setIsSavingAvailability(false);
+    }
+  }
+
+
   if (!user || user.role !== 'Counsellor') {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center">
@@ -318,6 +358,36 @@ export default function CounsellorDashboard() {
                   )}
                 </div>
               </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Manage Availability</CardTitle>
+                        <CardDescription>Set the days and times you are available for sessions.</CardDescription>
+                    </div>
+                    <Button onClick={() => setIsAvailabilityModalOpen(true)}>
+                        <Clock className="mr-2 h-4 w-4" /> Manage
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {isLoadingAvailability ? <Loader2 className="animate-spin" /> :
+                     <div className="space-y-4">
+                        {daysOfWeek.map(day => (
+                            <div key={day}>
+                                <h4 className="font-medium text-sm mb-2">{day}</h4>
+                                {availability[day] && availability[day]!.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {availability[day]!.map(time => (
+                                            <Badge key={time} variant="secondary">{time}</Badge>
+                                        ))}
+                                    </div>
+                                ) : <p className="text-xs text-muted-foreground">Not available</p>}
+                            </div>
+                        ))}
+                    </div>
+                    }
+                </CardContent>
             </Card>
             
             <Card className="rounded-2xl shadow-lg">
@@ -474,6 +544,47 @@ export default function CounsellorDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+       <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Your Weekly Availability</DialogTitle>
+            <DialogDescription>
+                Select the time slots you're available for appointments on each day. This schedule will repeat weekly.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-6">
+            {daysOfWeek.map(day => (
+                <div key={day} className="grid grid-cols-4 gap-4 items-start">
+                    <Label className="font-semibold text-right pt-2">{day}</Label>
+                    <div className="col-span-3">
+                        <div className="grid grid-cols-3 gap-2">
+                           {allPossibleTimes.map(time => (
+                             <Button 
+                                key={time}
+                                variant={currentAvailability[day]?.includes(time) ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => handleToggleTimeSlot(day, time)}
+                            >
+                               {time}
+                             </Button>
+                           ))}
+                        </div>
+                    </div>
+                </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+                <Button type="button" variant="secondary">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" onClick={handleSaveAvailability} disabled={isSavingAvailability}>
+              {isSavingAvailability ? <Loader2 className="animate-spin" /> : 'Save Availability'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </>
   );
 }

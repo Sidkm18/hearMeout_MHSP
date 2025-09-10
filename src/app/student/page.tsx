@@ -30,9 +30,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  availableTimes,
-} from '@/lib/data';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
@@ -44,6 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAvailability } from '@/hooks/use-availability';
 
 interface Appointment {
     id: string;
@@ -83,6 +81,13 @@ export default function StudentDashboard() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [isBooking, setIsBooking] = useState(false);
   const [isLoadingResources, setIsLoadingResources] = useState(true);
+  
+  const { availableSlots, isLoading: isLoadingSlots } = useAvailability(selectedCounsellor, date);
+
+  useEffect(() => {
+      // Reset time when counsellor or date changes
+      setSelectedTime('');
+  }, [selectedCounsellor, date])
 
   useEffect(() => {
     if (user && user.role !== 'Student') {
@@ -260,17 +265,23 @@ export default function StudentDashboard() {
                     <div className="space-y-4">
                         <div>
                             <h4 className="font-semibold mb-2">Available Times</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                            {availableTimes.map((time) => (
-                                <Button 
-                                    key={time} 
-                                    variant={selectedTime === time ? 'default' : 'outline'}
-                                    onClick={() => setSelectedTime(time)}
-                                >
-                                    {time}
-                                </Button>
-                            ))}
-                            </div>
+                            {isLoadingSlots ? <Loader2 className="animate-spin" /> :
+                             availableSlots.length > 0 ? (
+                                <div className="grid grid-cols-2 gap-2">
+                                {availableSlots.map((time) => (
+                                    <Button 
+                                        key={time} 
+                                        variant={selectedTime === time ? 'default' : 'outline'}
+                                        onClick={() => setSelectedTime(time)}
+                                    >
+                                        {time}
+                                    </Button>
+                                ))}
+                                </div>
+                             ) : <p className="text-sm text-muted-foreground">
+                                {selectedCounsellor ? "No available slots for this day." : "Please select a counsellor first."}
+                                </p>
+                            }
                         </div>
                         <div>
                            <Label htmlFor="reason">Reason for booking</Label>
