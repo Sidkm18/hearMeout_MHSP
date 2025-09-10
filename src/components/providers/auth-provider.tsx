@@ -9,6 +9,18 @@ import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { Logo } from '../logo';
 
+// Helper for anonymous ID generation
+const adjectives = ["Creative", "Brave", "Clever", "Gentle", "Happy", "Wise", "Witty", "Sunny", "Calm", "Kind"];
+const nouns = ["Panda", "Tiger", "Badger", "Fox", "Eagle", "Lion", "Bear", "Wolf", "Hawk", "Jaguar"];
+
+const generateAnonymousId = () => {
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const num = Math.floor(Math.random() * 100);
+    return `${adj}${noun}${num}`;
+}
+
+
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -61,6 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (userDoc.exists()) {
         const userData = userDoc.data() as Omit<User, 'uid'>;
+         if (userData.role !== 'Student' && userData.status !== 'Approved') {
+            throw new Error(`Your ${userData.role} account is pending approval from an administrator.`);
+        }
         const userWithUid: User = { ...userData, uid: firebaseUser.uid };
         setUser(userWithUid);
         router.push(`/${userWithUid.role.toLowerCase()}`);
@@ -86,13 +101,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name,
         email: firebaseUser.email!,
         role,
+        anonymousId: generateAnonymousId(),
+        status: role === 'Student' ? 'Approved' : 'Pending', // Auto-approve students
         ...(role === 'Student' && { academicYear }),
       };
 
       await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
       const userWithUid: User = { ...newUser, uid: firebaseUser.uid };
-      setUser(userWithUid);
-      router.push(`/${userWithUid.role.toLowerCase()}`);
+      
+      if (userWithUid.status === 'Pending') {
+          toast({
+              title: "Registration Successful!",
+              description: "Your account has been created and is pending approval from an administrator.",
+          });
+          logout();
+      } else {
+          setUser(userWithUid);
+          router.push(`/${userWithUid.role.toLowerCase()}`);
+      }
+
 
     } catch (e: any) {
       setError(e.message);

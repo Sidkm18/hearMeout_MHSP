@@ -6,5 +6,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  anonymousId: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
   academicYear?: string; // Added for students
 }

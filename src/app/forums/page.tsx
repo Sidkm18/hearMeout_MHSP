@@ -22,7 +22,7 @@ export interface Post {
   title: string;
   content: string;
   authorId: string;
-  authorName: string;
+  authorName: string; // This will now store the anonymousId
   authorRole: string;
   createdAt: Timestamp;
   type: 'peer-to-peer' | 'peer-to-volunteer';
@@ -96,7 +96,7 @@ export default function ForumsPage() {
         content: newPostContent,
         type: newPostType,
         authorId: user.uid,
-        authorName: user.name,
+        authorName: user.anonymousId, // Use anonymousId for display
         authorRole: user.role,
         createdAt: serverTimestamp(),
         isBlocked: false,

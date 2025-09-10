@@ -32,7 +32,7 @@ interface Reply {
   id: string;
   content: string;
   authorId: string;
-  authorName: string;
+  authorName: string; // Will store anonymousId
   authorRole: string;
   createdAt: Timestamp;
   parentId: string | null;
@@ -218,7 +218,7 @@ export default function PostPage() {
       await addDoc(repliesCollectionRef, {
         content: content,
         authorId: user.uid,
-        authorName: user.name,
+        authorName: user.anonymousId, // Use anonymousId for replies
         authorRole: user.role,
         createdAt: serverTimestamp(),
         parentId: parentId,
