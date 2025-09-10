@@ -33,9 +33,10 @@ import {
 } from '@/components/ui/select';
 import { Header } from '@/components/layout/header';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Resource {
   id: string;
@@ -58,7 +59,9 @@ const ICONS: Record<Resource['type'], React.ElementType> = {
 };
 
 export default function ResourceLibrary() {
+  const { user } = useAuth();
   const [resources, setResources] = useState<Resource[]>([]);
+  const [recommendedResources, setRecommendedResources] = useState<Resource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
@@ -87,6 +90,19 @@ export default function ResourceLibrary() {
 
     return () => unsubscribe();
   }, []);
+  
+  useEffect(() => {
+    if (user) {
+      const fetchRecommendations = async () => {
+        // This is a placeholder for the real recommendation fetching logic.
+        // We'll assume a 'recommendations' collection exists that links users to resources.
+        // For now, this will return an empty array.
+        setRecommendedResources([]);
+      };
+      fetchRecommendations();
+    }
+  }, [user]);
+
 
   const allCategories = useMemo(() => {
     const categories = new Set<string>();
@@ -120,7 +136,7 @@ export default function ResourceLibrary() {
 
     return (
       <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
-        {resource.type === 'video' && resource.thumbnail ? (
+        {(resource.type === 'video' || resource.type === 'book' || resource.type === 'article') && resource.thumbnail ? (
           <div className="relative aspect-video">
              <Image
               src={resource.thumbnail || 'https://picsum.photos/600/400'}
@@ -214,7 +230,18 @@ export default function ResourceLibrary() {
           </Select>
         </div>
         
-        {/* We will implement counsellor recommendations later */}
+        {recommendedResources.length > 0 && (
+          <section className="mb-12">
+            <h2 className="font-headline text-3xl mb-6">Recommended For You</h2>
+             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {recommendedResources.map((resource) => (
+                <Link key={resource.id} href={resource.link} target="_blank" className="block">
+                  <ResourceCard resource={resource} />
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section>
           <h2 className="font-headline text-3xl mb-6">

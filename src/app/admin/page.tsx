@@ -398,7 +398,7 @@ export default function AdminDashboard() {
               </Label>
               <Input id="link" value={currentResource.link} onChange={e => setCurrentResource({...currentResource, link: e.target.value})} className="col-span-3" />
             </div>
-            {(currentResource.type === 'video') && (
+            {(currentResource.type === 'video' || currentResource.type === 'book' || currentResource.type === 'article') && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="thumbnail" className="text-right">
                   Thumbnail URL
