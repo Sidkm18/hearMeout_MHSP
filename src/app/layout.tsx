@@ -5,7 +5,7 @@ import { AuthProvider } from '@/components/providers/auth-provider';
 import { EmergencyHelpButton } from '@/components/emergency-help-button';
 
 export const metadata: Metadata = {
-  title: 'hearMeout',
+  title: 'HearMeout',
   description: 'Your safe space for mental wellness.',
 };
 
