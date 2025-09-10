@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp, updateDoc, deleteDoc, where } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp, updateDoc, deleteDoc, where, getDocs } from 'firebase/firestore';
 import type { Post } from '../page'; // Re-using Post interface
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
@@ -61,8 +61,8 @@ const ReplyCard = ({ reply, onReply, canModerate, onDelete, level = 0 }: { reply
     }
 
     return (
-        <div style={{ marginLeft: `${level * 2}rem` }} className="mt-4">
-            <Card className="rounded-2xl">
+        <div style={{ marginLeft: `${level * 1.5}rem` }} className="mt-4">
+            <Card className="rounded-xl">
                 <CardContent className="p-4 flex items-start gap-4">
                   <Avatar className="h-10 w-10 border">
                     <AvatarFallback>{reply.authorName.charAt(0)}</AvatarFallback>
@@ -175,16 +175,15 @@ export default function PostPage() {
         fetchedReplies.push({ id: doc.id, ...doc.data() } as Reply);
       });
       
-      // Basic threading logic
-      const repliesById = fetchedReplies.reduce((acc, reply) => {
-          acc[reply.id] = { ...reply, replies: [] };
-          return acc;
-      }, {} as { [id: string]: Reply });
+      const repliesById: { [id: string]: Reply & { replies: Reply[] } } = {};
+      fetchedReplies.forEach(reply => {
+          repliesById[reply.id] = { ...reply, replies: [] };
+      });
 
       const threadedReplies: Reply[] = [];
       fetchedReplies.forEach(reply => {
           if (reply.parentId && repliesById[reply.parentId]) {
-              repliesById[reply.parentId].replies?.push(repliesById[reply.id]);
+              repliesById[reply.parentId].replies.push(repliesById[reply.id]);
           } else {
               threadedReplies.push(repliesById[reply.id]);
           }
@@ -207,7 +206,11 @@ export default function PostPage() {
   const handlePostReply = async (parentId: string | null, content: string) => {
     if (!user || !content.trim()) return;
 
-    setIsReplying(true);
+    const topLevelReply = parentId === null;
+    if (topLevelReply) {
+        setIsReplying(true);
+    }
+    
     try {
       const postDocRef = doc(db, 'posts', postId);
       const repliesCollectionRef = collection(postDocRef, 'replies');
@@ -221,13 +224,13 @@ export default function PostPage() {
         parentId: parentId,
       });
       
+      // Update reply count on post
       const allRepliesSnapshot = await getDocs(query(collection(postDocRef, 'replies')));
-      
       await updateDoc(postDocRef, {
           replyCount: allRepliesSnapshot.size
       });
 
-      if (!parentId) {
+      if (topLevelReply) {
         setNewReply('');
       }
       toast({ title: "Success", description: "Your reply has been posted." });
@@ -236,7 +239,9 @@ export default function PostPage() {
       console.error("Error posting reply:", error);
       toast({ title: "Error", description: "Failed to post reply.", variant: "destructive" });
     } finally {
-      setIsReplying(false);
+      if (topLevelReply) {
+        setIsReplying(false);
+      }
     }
   };
   
@@ -258,27 +263,48 @@ export default function PostPage() {
         toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
     }
   }
+
+  const handleBlockPost = async () => {
+    if (!canModerate) return;
+    try {
+        const postDocRef = doc(db, 'posts', postId);
+        await updateDoc(postDocRef, { isBlocked: true });
+        toast({ title: "Post Blocked", description: "The post has been blocked and removed from public view."});
+        router.push('/forums');
+    } catch (error) {
+        console.error("Error blocking post:", error);
+        toast({ title: "Error", description: "Failed to block the post.", variant: "destructive" });
+    }
+  };
   
   const handleDeleteReply = async (replyId: string) => {
     if (!canModerate) return;
     try {
         const postDocRef = doc(db, 'posts', postId);
-        const replyDocRef = doc(postDocRef, 'replies', replyId);
-        await deleteDoc(replyDocRef);
         
         // This is a naive implementation for deleting replies.
         // A better approach would be a cloud function to recursively delete children.
-        const allRepliesSnapshot = await getDocs(query(collection(postDocRef, 'replies'), where('parentId', '==', replyId)));
-        allRepliesSnapshot.forEach(async (doc) => {
-           await deleteDoc(doc.ref);
-        });
+        const repliesToDelete = [replyId];
+        const allRepliesSnapshot = await getDocs(query(collection(postDocRef, 'replies')));
+        const allReplies = allRepliesSnapshot.docs.map(d => ({id: d.id, ...d.data()}));
+
+        let i = 0;
+        while(i < repliesToDelete.length){
+            const parentId = repliesToDelete[i];
+            const children = allReplies.filter(r => r.parentId === parentId).map(r => r.id);
+            repliesToDelete.push(...children);
+            i++;
+        }
+        
+        for (const id of repliesToDelete) {
+            await deleteDoc(doc(postDocRef, 'replies', id));
+        }
 
         const updatedRepliesSnapshot = await getDocs(query(collection(postDocRef, 'replies')));
-
         await updateDoc(postDocRef, {
             replyCount: updatedRepliesSnapshot.size
         });
-        toast({ title: "Reply Deleted", description: "The reply has been removed." });
+        toast({ title: "Reply Deleted", description: "The reply and its thread have been removed." });
     } catch (error) {
         console.error("Error deleting reply:", error);
         toast({ title: "Error", description: "Failed to delete reply.", variant: "destructive" });
@@ -313,21 +339,37 @@ export default function PostPage() {
               </div>
               {canModerate && (
                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled><ShieldOff className="mr-2 h-4 w-4"/> Block</Button>
+                    <AlertDialog>
+                       <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" disabled={post.isBlocked}><ShieldOff className="mr-2 h-4 w-4"/> Block</Button>
+                       </AlertDialogTrigger>
+                       <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Block this post?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will hide the post from all public forum views. Are you sure?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleBlockPost}>Block Post</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4"/> Delete Post</Button>
+                        <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4"/> Delete</Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                           <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete the post and all its replies.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeletePost}>Delete</AlertDialogAction>
+                          <AlertDialogAction onClick={handleDeletePost}>Delete Post</AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
@@ -342,7 +384,7 @@ export default function PostPage() {
 
         <section className="mt-8">
           <h3 className="font-headline text-2xl mb-4">Replies ({post.replyCount || 0})</h3>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {isLoadingReplies ? (
               <div className="flex justify-center"><Loader2 className="animate-spin"/></div>
             ) : replies.map(reply => (

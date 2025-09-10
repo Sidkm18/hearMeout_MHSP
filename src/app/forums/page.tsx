@@ -25,7 +25,7 @@ export interface Post {
   authorName: string;
   authorRole: string;
   createdAt: Timestamp;
-  type: 'peer-to-peer' | 'peer-to-professional';
+  type: 'peer-to-peer' | 'peer-to-volunteer';
   isBlocked: boolean;
   replyCount: number;
 }
@@ -40,19 +40,21 @@ export default function ForumsPage() {
   
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
-  const [newPostType, setNewPostType] = useState<'peer-to-peer' | 'peer-to-professional'>('peer-to-peer');
+  const [newPostType, setNewPostType] = useState<'peer-to-peer' | 'peer-to-volunteer'>('peer-to-peer');
   
-  const [filter, setFilter] = useState<'all' | 'peer-to-peer' | 'peer-to-professional'>('all');
+  const [filter, setFilter] = useState<'all' | 'peer-to-peer' | 'peer-to-volunteer'>('all');
 
 
   useEffect(() => {
-    let q = query(
-      collection(db, 'posts'), 
-      where('isBlocked', '==', false), 
-      orderBy('createdAt', 'desc')
-    );
+    let q;
     
-    if (filter !== 'all') {
+    if (filter === 'all') {
+        q = query(
+          collection(db, 'posts'), 
+          where('isBlocked', '==', false), 
+          orderBy('createdAt', 'desc')
+        );
+    } else {
         q = query(
           collection(db, 'posts'), 
           where('isBlocked', '==', false), 
@@ -119,10 +121,10 @@ export default function ForumsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            <div className="flex gap-2">
-                <Button variant={filter === 'all' ? 'default' : 'outline'} onClick={() => setFilter('all')}>All Discussions</Button>
-                <Button variant={filter === 'peer-to-peer' ? 'default' : 'outline'} onClick={() => setFilter('peer-to-peer')}>Peer-to-Peer</Button>
-                <Button variant={filter === 'peer-to-professional' ? 'default' : 'outline'} onClick={() => setFilter('peer-to-professional')}>Ask a Volunteer</Button>
+            <div className="flex gap-2 p-1 bg-muted rounded-lg w-fit">
+                <Button size="sm" variant={filter === 'all' ? 'secondary' : 'ghost'} onClick={() => setFilter('all')} className="rounded-md">All Discussions</Button>
+                <Button size="sm" variant={filter === 'peer-to-peer' ? 'secondary' : 'ghost'} onClick={() => setFilter('peer-to-peer')} className="rounded-md">Peer-to-Peer</Button>
+                <Button size="sm" variant={filter === 'peer-to-volunteer' ? 'secondary' : 'ghost'} onClick={() => setFilter('peer-to-volunteer')} className="rounded-md">Ask a Volunteer</Button>
             </div>
             {isLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-10 w-10 animate-spin"/></div>
@@ -143,7 +145,7 @@ export default function ForumsPage() {
                       <Badge variant={post.type === 'peer-to-peer' ? 'secondary' : 'default'}>
                         {post.type === 'peer-to-peer' ? 'Peer-to-Peer' : 'Peer-to-Volunteer'}
                       </Badge>
-                      <span>Posted by {post.authorName} ({post.authorRole})</span>
+                      <span className="flex items-center gap-1"><User className="h-3 w-3"/>{post.authorName} ({post.authorRole})</span>
                       <span>
                         {post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : '...'}
                       </span>
@@ -186,7 +188,7 @@ export default function ForumsPage() {
                   />
                   <Select 
                     value={newPostType} 
-                    onValueChange={(value: 'peer-to-peer' | 'peer-to-professional') => setNewPostType(value)}
+                    onValueChange={(value: 'peer-to-peer' | 'peer-to-volunteer') => setNewPostType(value)}
                     disabled={isPosting}
                   >
                     <SelectTrigger>
@@ -194,7 +196,7 @@ export default function ForumsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="peer-to-peer">Peer-to-Peer Discussion</SelectItem>
-                      <SelectItem value="peer-to-professional">Ask a Volunteer/Counsellor</SelectItem>
+                      <SelectItem value="peer-to-volunteer">Ask a Volunteer/Counsellor</SelectItem>
                     </SelectContent>
                   </Select>
                 </CardContent>
