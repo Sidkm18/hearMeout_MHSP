@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/accordion';
 import { Loader2, PlusCircle, Trash2, Edit, AlertCircle, Clock, X } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc, Timestamp, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc, Timestamp, getDocs, orderBy, limit, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -272,8 +272,27 @@ export default function CounsellorDashboard() {
     setIsAlertOpen(true);
   }
   
-  const showPersonalInfo = (appointment: Appointment) => {
-     setAlertContent({ title: `${appointment.studentName}'s Personal Info`, description: `This is placeholder data. A full implementation would fetch the student's email and academic year from the database.` });
+  const showPersonalInfo = async (appointment: Appointment) => {
+     try {
+        const userDocRef = doc(db, 'users', appointment.studentId);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const description = (
+                <div className="space-y-2 text-sm">
+                    <p><strong>Email:</strong> {userData.email}</p>
+                    <p><strong>Academic Year:</strong> {userData.academicYear || 'Not specified'}</p>
+                </div>
+            );
+            setAlertContent({ title: `${appointment.studentName}'s Personal Info`, description });
+        } else {
+             setAlertContent({ title: `${appointment.studentName}'s Personal Info`, description: "Could not find student details." });
+        }
+     } catch (error) {
+         console.error("Error fetching student info:", error);
+         setAlertContent({ title: "Error", description: "Failed to fetch student information."});
+     }
      setIsAlertOpen(true);
   }
 
@@ -608,5 +627,3 @@ export default function CounsellorDashboard() {
     </>
   );
 }
-
-    
