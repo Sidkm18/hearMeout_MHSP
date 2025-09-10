@@ -41,13 +41,25 @@ export default function ForumsPage() {
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostType, setNewPostType] = useState<'peer-to-peer' | 'peer-to-professional'>('peer-to-peer');
+  
+  const [filter, setFilter] = useState<'all' | 'peer-to-peer' | 'peer-to-professional'>('all');
+
 
   useEffect(() => {
-    const q = query(
+    let q = query(
       collection(db, 'posts'), 
       where('isBlocked', '==', false), 
       orderBy('createdAt', 'desc')
     );
+    
+    if (filter !== 'all') {
+        q = query(
+          collection(db, 'posts'), 
+          where('isBlocked', '==', false), 
+          where('type', '==', filter),
+          orderBy('createdAt', 'desc')
+        );
+    }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedPosts: Post[] = [];
@@ -63,7 +75,7 @@ export default function ForumsPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, filter]);
   
   const handleCreatePost = async () => {
     if (!user) {
@@ -107,12 +119,17 @@ export default function ForumsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
+            <div className="flex gap-2">
+                <Button variant={filter === 'all' ? 'default' : 'outline'} onClick={() => setFilter('all')}>All Discussions</Button>
+                <Button variant={filter === 'peer-to-peer' ? 'default' : 'outline'} onClick={() => setFilter('peer-to-peer')}>Peer-to-Peer</Button>
+                <Button variant={filter === 'peer-to-professional' ? 'default' : 'outline'} onClick={() => setFilter('peer-to-professional')}>Ask a Volunteer</Button>
+            </div>
             {isLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-10 w-10 animate-spin"/></div>
             ) : posts.length === 0 ? (
                <Card className="rounded-2xl shadow-lg">
                  <CardContent className="pt-6">
-                   <p className="text-center text-muted-foreground">No discussions yet. Be the first to start one!</p>
+                   <p className="text-center text-muted-foreground">No discussions yet in this category. Be the first to start one!</p>
                  </CardContent>
                </Card>
             ) : (
@@ -145,7 +162,7 @@ export default function ForumsPage() {
             )}
           </div>
 
-          <div className="space-y-6 lg:sticky top-28">
+          <div className="space-y-6 lg:sticky top-28 h-fit">
             {user?.role === 'Student' && (
               <Card className="rounded-2xl shadow-lg">
                 <CardHeader>
@@ -194,4 +211,3 @@ export default function ForumsPage() {
     </>
   );
 }
-

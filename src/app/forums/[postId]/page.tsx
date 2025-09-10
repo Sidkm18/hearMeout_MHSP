@@ -16,6 +16,17 @@ import { Loader2, Send, ShieldOff, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface Reply {
   id: string;
@@ -46,27 +57,23 @@ export default function PostPage() {
 
     const postDocRef = doc(db, 'posts', postId);
 
-    const getPost = async () => {
-      try {
-        const docSnap = await getDoc(postDocRef);
+    const unsubscribePost = onSnapshot(postDocRef, (docSnap) => {
         if (docSnap.exists()) {
           setPost({ id: docSnap.id, ...docSnap.data() } as Post);
         } else {
           toast({ title: "Error", description: "Post not found.", variant: "destructive" });
           router.push('/forums');
         }
-      } catch (error) {
+        setIsLoadingPost(false);
+    }, (error) => {
         console.error("Error fetching post:", error);
         toast({ title: "Error", description: "Could not fetch the post.", variant: "destructive" });
-      } finally {
         setIsLoadingPost(false);
-      }
-    };
+    });
 
-    getPost();
 
     const repliesQuery = query(collection(postDocRef, 'replies'), orderBy('createdAt', 'asc'));
-    const unsubscribe = onSnapshot(repliesQuery, (snapshot) => {
+    const unsubscribeReplies = onSnapshot(repliesQuery, (snapshot) => {
       const fetchedReplies: Reply[] = [];
       snapshot.forEach(doc => {
         fetchedReplies.push({ id: doc.id, ...doc.data() } as Reply);
@@ -79,7 +86,10 @@ export default function PostPage() {
         setIsLoadingReplies(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+        unsubscribePost();
+        unsubscribeReplies();
+    };
   }, [postId, router, toast]);
 
   const handlePostReply = async () => {
@@ -116,10 +126,42 @@ export default function PostPage() {
   
   const canReply = user && (
     post?.type === 'peer-to-peer' || 
-    (post?.type === 'peer-to-professional' && (user.role === 'Counsellor' || user.role === 'Volunteer' || user.role === 'Admin'))
+    (user.role === 'Counsellor' || user.role === 'Volunteer' || user.role === 'Admin')
   );
 
   const canModerate = user && (user.role === 'Counsellor' || user.role === 'Admin' || user.role === 'Volunteer');
+  
+  const handleDeletePost = async () => {
+    if (!canModerate) return;
+    try {
+        // Note: Deleting a document does not delete its subcollections!
+        // For a production app, you'd use a Cloud Function to delete replies.
+        // For this prototype, we'll just delete the post document.
+        await deleteDoc(doc(db, 'posts', postId));
+        toast({ title: "Post Deleted", description: "The post has been removed successfully." });
+        router.push('/forums');
+    } catch(error) {
+        console.error("Error deleting post:", error);
+        toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
+    }
+  }
+  
+  const handleDeleteReply = async (replyId: string) => {
+    if (!canModerate) return;
+    try {
+        const postDocRef = doc(db, 'posts', postId);
+        const replyDocRef = doc(postDocRef, 'replies', replyId);
+        await deleteDoc(replyDocRef);
+        await updateDoc(postDocRef, {
+            replyCount: replies.length - 1
+        });
+        toast({ title: "Reply Deleted", description: "The reply has been removed." });
+    } catch (error) {
+        console.error("Error deleting reply:", error);
+        toast({ title: "Error", description: "Failed to delete reply.", variant: "destructive" });
+    }
+  }
+
 
   if (isLoadingPost) {
     return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin"/></div>
@@ -148,8 +190,24 @@ export default function PostPage() {
               </div>
               {canModerate && (
                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled><ShieldOff className="mr-2"/> Block</Button>
-                    <Button variant="destructive" size="sm" disabled><Trash2 className="mr-2"/> Delete</Button>
+                    <Button variant="outline" size="sm" disabled><ShieldOff className="mr-2 h-4 w-4"/> Block</Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4"/> Delete Post</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the post and all its replies.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeletePost}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                  </div>
               )}
             </div>
@@ -171,12 +229,35 @@ export default function PostPage() {
                     <AvatarFallback>{reply.authorName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{reply.authorName}</span>
-                      <Badge variant="outline" className="text-xs">{reply.authorRole}</Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {reply.createdAt ? formatDistanceToNow(reply.createdAt.toDate(), { addSuffix: true }) : '...'}
-                      </span>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="font-semibold">{reply.authorName}</span>
+                            <Badge variant="outline" className="text-xs">{reply.authorRole}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                                {reply.createdAt ? formatDistanceToNow(reply.createdAt.toDate(), { addSuffix: true }) : '...'}
+                            </span>
+                        </div>
+                        {canModerate && (
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete this reply?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    This action cannot be undone. Are you sure you want to permanently delete this reply?
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteReply(reply.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
                     </div>
                     <p className="mt-1 text-sm">{reply.content}</p>
                   </div>
@@ -204,7 +285,7 @@ export default function PostPage() {
             </CardContent>
             <CardFooter className="justify-end">
               <Button onClick={handlePostReply} disabled={isReplying || !newReply.trim()}>
-                {isReplying ? <Loader2 className="animate-spin"/> : <><Send className="mr-2"/> Post Reply</>}
+                {isReplying ? <Loader2 className="animate-spin"/> : <><Send className="mr-2 h-4 w-4"/> Post Reply</>}
               </Button>
             </CardFooter>
           </Card>
