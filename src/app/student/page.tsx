@@ -270,10 +270,10 @@ export default function StudentDashboard() {
       <Header />
       <main>
         <section className="relative flex flex-col items-center justify-center text-center min-h-[calc(100vh-80px)]">
-            <h2 className="font-headline text-7xl mb-6">
+            <h2 className="font-headline text-7xl mb-12">
             How are you doing today, {user.name}?
             </h2>
-             <Button size="lg" onClick={() => setChatbotOpen(true)} className="rounded-full shadow-lg text-lg py-8 px-8">
+             <Button size="lg" onClick={() => setChatbotOpen(true)} className="rounded-full shadow-lg text-lg py-8 px-12 bg-primary text-primary-foreground hover:bg-primary/90">
                 <MessageSquare className="mr-3 h-6 w-6"/>
                 Talk to my AI companion
             </Button>
@@ -612,5 +612,3 @@ export default function StudentDashboard() {
     </>
   );
 }
-
-    
