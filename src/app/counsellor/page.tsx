@@ -46,6 +46,12 @@ export default function CounsellorDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!user || user.role !== 'Counsellor') {
+      router.push('/');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     if (!user || user.role !== 'Counsellor') return;
 
     setIsLoading(true);
@@ -85,7 +91,6 @@ export default function CounsellorDashboard() {
   }, [user]);
 
   if (!user || user.role !== 'Counsellor') {
-    if (typeof window !== 'undefined') router.push('/');
     return null;
   }
 

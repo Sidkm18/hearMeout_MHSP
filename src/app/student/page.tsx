@@ -88,6 +88,12 @@ export default function StudentDashboard() {
   const [isBooking, setIsBooking] = useState(false);
 
   useEffect(() => {
+    if (!user || user.role !== 'Student') {
+      router.push('/');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     const fetchCounsellors = async () => {
       const q = query(collection(db, "users"), where("role", "==", "Counsellor"));
       const querySnapshot = await getDocs(q);
@@ -166,7 +172,6 @@ export default function StudentDashboard() {
   }
   
   if (!user || user.role !== 'Student') {
-    if (typeof window !== 'undefined') router.push('/');
     return null;
   }
 
@@ -367,75 +372,75 @@ export default function StudentDashboard() {
 
           <TabsContent value="heal-me" className="mt-6">
             <Card className="rounded-2xl shadow-lg">
-                <CardHeader>
-                    <CardTitle>Recommended For You</CardTitle>
-                    <CardDescription>Videos and books to help you on your journey.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-6 md:grid-cols-2">
-                    {healMeResources.videos.map(res => (
-                    <div key={res.id} className="group relative">
-                        <Image
-                        data-ai-hint={res.dataAiHint}
-                        src={res.thumbnail}
-                        alt={res.title}
-                        width={600}
-                        height={400}
-                        className="rounded-lg aspect-video object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                        <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
-                        </div>
+              <CardHeader>
+                <CardTitle>Recommended For You</CardTitle>
+                <CardDescription>Videos and books to help you on your journey.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6 md:grid-cols-2">
+                {healMeResources.videos.map(res => (
+                  <div key={res.id} className="group relative">
+                    <Image
+                      data-ai-hint={res.dataAiHint}
+                      src={res.thumbnail}
+                      alt={res.title}
+                      width={600}
+                      height={400}
+                      className="rounded-lg aspect-video object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                      <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
                     </div>
-                    ))}
-                    {healMeResources.books.map(res => (
-                    <div key={res.id} className="group relative">
-                        <Image
-                        data-ai-hint={res.dataAiHint}
-                        src={res.thumbnail}
-                        alt={res.title}
-                        width={600}
-                        height={400}
-                        className="rounded-lg aspect-video object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                        <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
-                        </div>
+                  </div>
+                ))}
+                {healMeResources.books.map(res => (
+                  <div key={res.id} className="group relative">
+                    <Image
+                      data-ai-hint={res.dataAiHint}
+                      src={res.thumbnail}
+                      alt={res.title}
+                      width={600}
+                      height={400}
+                      className="rounded-lg aspect-video object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                      <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
                     </div>
-                    ))}
-                </CardContent>
-                </Card>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
 
-                <Card className="rounded-2xl shadow-lg mt-6">
+            <Card className="rounded-2xl shadow-lg mt-6">
+              <CardHeader>
+                <CardTitle>Meditation</CardTitle>
+                <CardDescription>Find your inner peace.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Image
+                  data-ai-hint="meditation nature"
+                  src="https://picsum.photos/600/400"
+                  alt="Meditation"
+                  width={600}
+                  height={400}
+                  className="rounded-lg aspect-video object-cover mb-4"
+                />
+                <Button asChild className="w-full">
+                  <Link href="/meditation">Start a Session</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl shadow-lg mt-6">
                 <CardHeader>
-                    <CardTitle>Meditation</CardTitle>
-                    <CardDescription>Find your inner peace.</CardDescription>
+                    <CardTitle>Calming Music</CardTitle>
+                    <CardDescription>Listen to curated playlists.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Image
-                    data-ai-hint="meditation nature"
-                    src="https://picsum.photos/600/400"
-                    alt="Meditation"
-                    width={600}
-                    height={400}
-                    className="rounded-lg aspect-video object-cover mb-4"
-                    />
-                    <Button asChild className="w-full">
-                    <Link href="/meditation">Start a Session</Link>
+                    <Button variant="secondary" className="w-full">
+                    <Headphones className="mr-2" /> Open Playlist
                     </Button>
                 </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl shadow-lg mt-6">
-                    <CardHeader>
-                        <CardTitle>Calming Music</CardTitle>
-                        <CardDescription>Listen to curated playlists.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button variant="secondary" className="w-full">
-                        <Headphones className="mr-2" /> Open Playlist
-                        </Button>
-                    </CardContent>
-                </Card>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
@@ -443,5 +448,3 @@ export default function StudentDashboard() {
     </>
   );
 }
-
-    

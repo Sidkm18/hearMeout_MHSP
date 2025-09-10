@@ -1,5 +1,5 @@
 'use client';
-
+import { useEffect } from 'react';
 import { Header } from '@/components/layout/header';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
@@ -28,8 +28,13 @@ export default function VolunteerDashboard() {
   const { user } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!user || user.role !== 'Volunteer') {
+      router.push('/');
+    }
+  }, [user, router]);
+
   if (!user || user.role !== 'Volunteer') {
-    if (typeof window !== 'undefined') router.push('/');
     return null;
   }
 
