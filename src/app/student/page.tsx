@@ -38,7 +38,6 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import {
   availableTimes,
-  healMeResources
 } from '@/lib/data';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
@@ -49,7 +48,6 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, query, where, onSnapshot, Timestamp, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { User as AppUser } from '@/lib/types';
-
 
 interface Appointment {
     id: string;
@@ -64,6 +62,14 @@ interface Counsellor extends AppUser {
     id: string;
 }
 
+interface Resource {
+  id: string;
+  title: string;
+  type: 'video' | 'book' | 'article' | 'audio' | 'spotify';
+  link: string;
+  description: string;
+  thumbnail: string;
+}
 
 const moodOptions = [
   { name: 'Sad', icon: Frown },
@@ -85,17 +91,19 @@ export default function StudentDashboard() {
   const [selectedCounsellor, setSelectedCounsellor] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [isBooking, setIsBooking] = useState(false);
+  const [isLoadingResources, setIsLoadingResources] = useState(true);
 
   useEffect(() => {
-    if (!user || user.role !== 'Student') {
-      router.push('/');
+    if (user && user.role !== 'Student') {
+      router.push(`/${user.role.toLowerCase()}`);
     }
   }, [user, router]);
 
   useEffect(() => {
     const fetchCounsellors = async () => {
-      const q = query(collection(db, "users"), where("role", "==", "Counsellor"));
+      const q = query(collection(db, "users"), where("role", "==", "Counsellor"), where("status", "==", "Approved"));
       const querySnapshot = await getDocs(q);
       const fetchedCounsellors: Counsellor[] = [];
       querySnapshot.forEach((doc) => {
@@ -105,12 +113,32 @@ export default function StudentDashboard() {
     };
 
     fetchCounsellors();
-  }, []);
+
+    const resourceQuery = query(collection(db, 'resources'));
+    const resourceUnsubscribe = onSnapshot(
+      resourceQuery,
+      (querySnapshot) => {
+        const fetchedResources: Resource[] = [];
+        querySnapshot.forEach((doc) => {
+            fetchedResources.push({ id: doc.id, ...(doc.data() as Omit<Resource, 'id'>) });
+        });
+        setResources(fetchedResources);
+        setIsLoadingResources(false);
+      }, (error) => {
+          console.error("Error fetching resources: ", error);
+          toast({ title: "Error", description: "Could not fetch resources.", variant: "destructive" });
+          setIsLoadingResources(false);
+      }
+    );
+
+    return () => resourceUnsubscribe();
+
+  }, [toast]);
 
   useEffect(() => {
     if (!user) return;
 
-    const q = query(collection(db, 'appointments'), where('studentId', '==', (user as any).uid));
+    const q = query(collection(db, 'appointments'), where('studentId', '==', user.uid));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const userAppointments: Appointment[] = [];
       querySnapshot.forEach((doc) => {
@@ -143,7 +171,7 @@ export default function StudentDashboard() {
       try {
         const counsellor = counsellors.find(c => c.id === selectedCounsellor);
         await addDoc(collection(db, 'appointments'), {
-            studentId: (user as any).uid,
+            studentId: user.uid,
             studentName: user.name,
             counsellorId: selectedCounsellor,
             counsellorName: counsellor?.name,
@@ -171,8 +199,12 @@ export default function StudentDashboard() {
       }
   }
   
-  if (!user || user.role !== 'Student') {
-    return null;
+  if (!user) {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin" />
+        </div>
+    );
   }
 
   return (
@@ -371,76 +403,95 @@ export default function StudentDashboard() {
           </TabsContent>
 
           <TabsContent value="heal-me" className="mt-6">
-            <Card className="rounded-2xl shadow-lg">
-              <CardHeader>
-                <CardTitle>Recommended For You</CardTitle>
-                <CardDescription>Videos and books to help you on your journey.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-2">
-                {healMeResources.videos.map(res => (
-                  <div key={res.id} className="group relative">
-                    <Image
-                      data-ai-hint={res.dataAiHint}
-                      src={res.thumbnail}
-                      alt={res.title}
-                      width={600}
-                      height={400}
-                      className="rounded-lg aspect-video object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                      <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
-                    </div>
-                  </div>
-                ))}
-                {healMeResources.books.map(res => (
-                  <div key={res.id} className="group relative">
-                    <Image
-                      data-ai-hint={res.dataAiHint}
-                      src={res.thumbnail}
-                      alt={res.title}
-                      width={600}
-                      height={400}
-                      className="rounded-lg aspect-video object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                      <h3 className="text-white font-bold text-lg text-center p-4">{res.title}</h3>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl shadow-lg mt-6">
-              <CardHeader>
-                <CardTitle>Meditation</CardTitle>
-                <CardDescription>Find your inner peace.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Image
-                  data-ai-hint="meditation nature"
-                  src="https://picsum.photos/600/400"
-                  alt="Meditation"
-                  width={600}
-                  height={400}
-                  className="rounded-lg aspect-video object-cover mb-4"
-                />
-                <Button asChild className="w-full">
-                  <Link href="/meditation">Start a Session</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl shadow-lg mt-6">
+            {isLoadingResources ? <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div> :
+            <div className="space-y-6">
+              <Card className="rounded-2xl shadow-lg">
                 <CardHeader>
-                    <CardTitle>Calming Music</CardTitle>
-                    <CardDescription>Listen to curated playlists.</CardDescription>
+                  <CardTitle>Recommended Videos</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <Button variant="secondary" className="w-full">
-                    <Headphones className="mr-2" /> Open Playlist
-                    </Button>
+                <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {resources.filter(r => r.type === 'video').map(res => (
+                    <Link href={res.link} key={res.id} target="_blank" className="group relative">
+                      <Image
+                        src={res.thumbnail || 'https://picsum.photos/600/400'}
+                        alt={res.title}
+                        width={600}
+                        height={400}
+                        className="rounded-lg aspect-video object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
+                        <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
+                        <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
+                      </div>
+                    </Link>
+                  ))}
                 </CardContent>
-            </Card>
+              </Card>
+
+              <Card className="rounded-2xl shadow-lg">
+                <CardHeader>
+                  <CardTitle>Recommended Books</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {resources.filter(r => r.type === 'book').map(res => (
+                     <Link href={res.link} key={res.id} target="_blank" className="group relative">
+                      <Image
+                        src={res.thumbnail || 'https://picsum.photos/600/400'}
+                        alt={res.title}
+                        width={600}
+                        height={400}
+                        className="rounded-lg aspect-video object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
+                        <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
+                         <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </CardContent>
+              </Card>
+              
+               <Card className="rounded-2xl shadow-lg">
+                <CardHeader>
+                  <CardTitle>Helpful Articles</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {resources.filter(r => r.type === 'article').map(res => (
+                     <Link href={res.link} key={res.id} target="_blank" className="group relative">
+                      <Image
+                        src={res.thumbnail || 'https://picsum.photos/600/400'}
+                        alt={res.title}
+                        width={600}
+                        height={400}
+                        className="rounded-lg aspect-video object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-4">
+                        <h3 className="text-white font-bold text-lg text-center">{res.title}</h3>
+                         <p className="text-white/80 text-sm text-center mt-1">{res.description}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl shadow-lg mt-6">
+                <CardHeader>
+                  <CardTitle>Meditation & Music</CardTitle>
+                  <CardDescription>Find your inner peace.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                  <Button asChild className="h-24">
+                    <Link href="/meditation">Start a Guided Session</Link>
+                  </Button>
+                  <Button variant="secondary" className="h-24" asChild>
+                     <Link href={resources.find(r => r.type === 'spotify')?.link || '#'} target="_blank">
+                        <Headphones className="mr-2" /> Listen on Spotify
+                     </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+            }
           </TabsContent>
         </Tabs>
       </main>

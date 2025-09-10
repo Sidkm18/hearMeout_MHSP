@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import {
   Accordion,
@@ -22,31 +21,77 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
-import { Send, Loader2 } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
-
+import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Appointment {
   id: string;
   studentId: string;
   studentName: string;
-  date: string; // Storing date as string for simplicity
+  date: string; 
   time: string;
-  reason?: string; // Assuming a reason might be added in the future
+  reason?: string; 
 }
+
+interface Resource {
+  id: string;
+  title: string;
+  type: 'video' | 'book' | 'article' | 'audio' | 'spotify';
+  link: string;
+  description: string;
+  thumbnail: string;
+  duration?: string;
+}
+
+const emptyResource: Omit<Resource, 'id'> = {
+  title: '',
+  type: 'video',
+  link: '',
+  description: '',
+  thumbnail: '',
+  duration: '',
+};
 
 export default function CounsellorDashboard() {
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+  
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [currentResource, setCurrentResource] = useState<Omit<Resource, 'id'> | Resource>(emptyResource);
+  const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || user.role !== 'Counsellor') {
+    if (!user) return;
+    if (user.role !== 'Counsellor') {
       router.push('/');
     }
   }, [user, router]);
@@ -55,12 +100,12 @@ export default function CounsellorDashboard() {
     if (!user || user.role !== 'Counsellor') return;
 
     setIsLoading(true);
-    const q = query(
+    const apptQuery = query(
       collection(db, 'appointments'),
       where('counsellorId', '==', user.uid)
     );
-    const unsubscribe = onSnapshot(
-      q,
+    const apptUnsubscribe = onSnapshot(
+      apptQuery,
       (querySnapshot) => {
         const counsellorAppointments: Appointment[] = [];
         querySnapshot.forEach((doc) => {
@@ -71,7 +116,7 @@ export default function CounsellorDashboard() {
             studentName: data.studentName,
             date: data.date,
             time: data.time,
-            reason: data.reason || 'Not specified', // Default value
+            reason: data.reason || 'Not specified',
           });
         });
         setAppointments(
@@ -83,12 +128,79 @@ export default function CounsellorDashboard() {
       },
       (error) => {
         console.error('Error fetching appointments: ', error);
+        toast({ title: "Error", description: "Could not fetch appointments.", variant: "destructive" });
         setIsLoading(false);
       }
     );
 
-    return () => unsubscribe();
-  }, [user]);
+    const resourceQuery = query(collection(db, 'resources'));
+    const resourceUnsubscribe = onSnapshot(
+      resourceQuery,
+      (querySnapshot) => {
+        const fetchedResources: Resource[] = [];
+        querySnapshot.forEach((doc) => {
+            fetchedResources.push({ id: doc.id, ...(doc.data() as Omit<Resource, 'id'>) });
+        });
+        setResources(fetchedResources);
+      }, (error) => {
+          console.error("Error fetching resources: ", error);
+          toast({ title: "Error", description: "Could not fetch resources.", variant: "destructive" });
+      }
+    );
+
+
+    return () => {
+        apptUnsubscribe();
+        resourceUnsubscribe();
+    };
+  }, [user, toast]);
+  
+  const handleOpenModal = (resource?: Resource) => {
+    if (resource) {
+      setCurrentResource(resource);
+      setEditingResourceId(resource.id);
+    } else {
+      setCurrentResource(emptyResource);
+      setEditingResourceId(null);
+    }
+    setIsModalOpen(true);
+  };
+  
+  const handleSaveResource = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      if (editingResourceId) {
+        const resourceDoc = doc(db, 'resources', editingResourceId);
+        await updateDoc(resourceDoc, { ...(currentResource as Resource) });
+         toast({ title: 'Success', description: 'Resource updated successfully.' });
+      } else {
+        await addDoc(collection(db, 'resources'), { 
+            ...currentResource,
+            createdBy: user.uid,
+            createdAt: Timestamp.now()
+         });
+        toast({ title: 'Success', description: 'Resource added successfully.' });
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+        console.error("Error saving resource: ", error);
+        toast({ title: 'Error', description: 'Failed to save resource.', variant: 'destructive' });
+    } finally {
+        setIsSaving(false);
+    }
+  }
+
+  const handleDeleteResource = async (resourceId: string) => {
+    if(!window.confirm("Are you sure you want to delete this resource?")) return;
+    try {
+        await deleteDoc(doc(db, 'resources', resourceId));
+        toast({ title: 'Success', description: 'Resource deleted.'});
+    } catch (error) {
+        console.error("Error deleting resource: ", error);
+        toast({ title: 'Error', description: 'Failed to delete resource.', variant: 'destructive' });
+    }
+  }
 
   if (!user || user.role !== 'Counsellor') {
     return null;
@@ -103,7 +215,7 @@ export default function CounsellorDashboard() {
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <Card className="rounded-2xl shadow-lg">
               <CardHeader>
                 <CardTitle>Your Schedule</CardTitle>
@@ -164,6 +276,43 @@ export default function CounsellorDashboard() {
                 </div>
               </CardContent>
             </Card>
+            
+            <Card className="rounded-2xl shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Manage HealMe Resources</CardTitle>
+                        <CardDescription>Add, edit, or delete resources for students.</CardDescription>
+                    </div>
+                    <Button onClick={() => handleOpenModal()}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Resource
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                   <div className="border rounded-lg overflow-hidden">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted/50">
+                            <tr>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-background divide-y divide-border">
+                            {resources.map(resource => (
+                                <tr key={resource.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{resource.title}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{resource.type}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenModal(resource)}><Edit className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteResource(resource.id)}><Trash2 className="h-4 w-4" /></Button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                   </div>
+                </CardContent>
+            </Card>
           </div>
           <div className="space-y-6">
             <Card className="rounded-2xl shadow-lg">
@@ -181,37 +330,6 @@ export default function CounsellorDashboard() {
             </Card>
             <Card className="rounded-2xl shadow-lg">
               <CardHeader>
-                <CardTitle>Recommend Resources</CardTitle>
-                <CardDescription>
-                  Share helpful materials with students.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea placeholder="Enter resource link or description..." />
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full">Recommend</Button>
-              </CardFooter>
-            </Card>
-            <Card className="rounded-2xl shadow-lg">
-              <CardHeader>
-                <CardTitle>Send Message to User</CardTitle>
-                <CardDescription>
-                  Communicate directly with a student.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea placeholder="Type your message..." />
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full">
-                  <Send className="mr-2 h-4 w-4" />
-                  Send
-                </Button>
-              </CardFooter>
-            </Card>
-            <Card className="rounded-2xl shadow-lg">
-              <CardHeader>
                 <CardTitle>My Profile</CardTitle>
               </CardHeader>
               <CardContent>
@@ -223,6 +341,74 @@ export default function CounsellorDashboard() {
           </div>
         </div>
       </main>
+
+       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingResourceId ? 'Edit Resource' : 'Add New Resource'}</DialogTitle>
+            <DialogDescription>
+              Fill in the details for the resource. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="title" className="text-right">
+                Title
+              </Label>
+              <Input id="title" value={currentResource.title} onChange={e => setCurrentResource({...currentResource, title: e.target.value})} className="col-span-3" />
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="type" className="text-right">
+                Type
+              </Label>
+              <Select value={currentResource.type} onValueChange={(value: Resource['type']) => setCurrentResource({...currentResource, type: value})}>
+                <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select resource type" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="book">Book</SelectItem>
+                    <SelectItem value="article">Article</SelectItem>
+                    <SelectItem value="audio">Audio</SelectItem>
+                    <SelectItem value="spotify">Spotify Playlist</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="link" className="text-right">
+                Link
+              </Label>
+              <Input id="link" value={currentResource.link} onChange={e => setCurrentResource({...currentResource, link: e.target.value})} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="thumbnail" className="text-right">
+                Thumbnail URL
+              </Label>
+              <Input id="thumbnail" value={currentResource.thumbnail} onChange={e => setCurrentResource({...currentResource, thumbnail: e.target.value})} className="col-span-3" placeholder="https://picsum.photos/600/400" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="duration" className="text-right">
+                Duration
+              </Label>
+              <Input id="duration" value={currentResource.duration || ''} onChange={e => setCurrentResource({...currentResource, duration: e.target.value})} className="col-span-3" placeholder="e.g. 10 mins" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
+              <Textarea id="description" value={currentResource.description} onChange={e => setCurrentResource({...currentResource, description: e.target.value})} className="col-span-3" />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+                <Button type="button" variant="secondary">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" onClick={handleSaveResource} disabled={isSaving}>
+              {isSaving ? <Loader2 className="animate-spin" /> : 'Save Resource'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

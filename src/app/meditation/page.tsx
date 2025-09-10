@@ -10,10 +10,46 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { healMeResources } from '@/lib/data';
-import { Wind, BookOpen, BrainCircuit, Play } from 'lucide-react';
+import { Wind, BookOpen, BrainCircuit, Play, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import Link from 'next/link';
+
+interface Resource {
+  id: string;
+  title: string;
+  type: 'video' | 'book' | 'article' | 'audio' | 'spotify';
+  link: string;
+  description: string;
+  thumbnail: string;
+  duration?: string;
+}
 
 export default function MeditationPage() {
+  const [meditations, setMeditations] = useState<Resource[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'resources'),
+      where('type', 'in', ['video', 'audio'])
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedMeditations: Resource[] = [];
+      snapshot.forEach((doc) => {
+        fetchedMeditations.push({ id: doc.id, ...(doc.data() as Omit<Resource, 'id'>) });
+      });
+      setMeditations(fetchedMeditations);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching meditation resources: ", error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
     <>
       <Header />
@@ -31,15 +67,19 @@ export default function MeditationPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {healMeResources.meditations.map((meditation) => (
-              <Card key={meditation.id} className="overflow-hidden group">
+            {isLoading ? (
+              <div className="col-span-full flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              meditations.map((meditation) => (
+              <Link href={meditation.link} key={meditation.id} target="_blank" className="group relative overflow-hidden rounded-lg">
                 <div className="relative">
                   <Image
-                    src={meditation.thumbnail}
+                    src={meditation.thumbnail || 'https://picsum.photos/600/400'}
                     alt={meditation.title}
                     width={600}
                     height={400}
-                    data-ai-hint={meditation.dataAiHint}
                     className="aspect-video object-cover w-full transition-transform group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
@@ -48,12 +88,12 @@ export default function MeditationPage() {
                      </Button>
                   </div>
                 </div>
-                <div className="p-4">
+                <div className="p-4 bg-card">
                   <h3 className="font-semibold">{meditation.title}</h3>
-                  <p className="text-sm text-muted-foreground">{meditation.duration}</p>
+                  {meditation.duration && <p className="text-sm text-muted-foreground">{meditation.duration}</p>}
                 </div>
-              </Card>
-            ))}
+              </Link>
+            )))}
           </CardContent>
         </Card>
 
