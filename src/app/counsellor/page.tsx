@@ -63,6 +63,8 @@ interface Resource {
   description: string;
   thumbnail: string;
   duration?: string;
+  tags?: string;
+  uploaderName?: string;
 }
 
 const emptyResource: Omit<Resource, 'id'> = {
@@ -72,6 +74,8 @@ const emptyResource: Omit<Resource, 'id'> = {
   description: '',
   thumbnail: '',
   duration: '',
+  tags: '',
+  uploaderName: '',
 };
 
 export default function CounsellorDashboard() {
@@ -159,7 +163,7 @@ export default function CounsellorDashboard() {
       setCurrentResource(resource);
       setEditingResourceId(resource.id);
     } else {
-      setCurrentResource(emptyResource);
+      setCurrentResource({...emptyResource, uploaderName: user?.name});
       setEditingResourceId(null);
     }
     setIsModalOpen(true);
@@ -169,14 +173,19 @@ export default function CounsellorDashboard() {
     if (!user) return;
     setIsSaving(true);
     try {
+      const resourceData = {
+        ...currentResource,
+        uploaderName: user.name,
+        uploaderId: user.uid,
+      };
+
       if (editingResourceId) {
         const resourceDoc = doc(db, 'resources', editingResourceId);
-        await updateDoc(resourceDoc, { ...(currentResource as Resource) });
+        await updateDoc(resourceDoc, resourceData);
          toast({ title: 'Success', description: 'Resource updated successfully.' });
       } else {
         await addDoc(collection(db, 'resources'), { 
-            ...currentResource,
-            createdBy: user.uid,
+            ...resourceData,
             createdAt: Timestamp.now()
          });
         toast({ title: 'Success', description: 'Resource added successfully.' });
@@ -202,7 +211,11 @@ export default function CounsellorDashboard() {
   }
 
   if (!user || user.role !== 'Counsellor') {
-    return null;
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin" />
+        </div>
+    );
   }
 
   return (
@@ -379,17 +392,25 @@ export default function CounsellorDashboard() {
               </Label>
               <Input id="link" value={currentResource.link} onChange={e => setCurrentResource({...currentResource, link: e.target.value})} className="col-span-3" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="thumbnail" className="text-right">
-                Thumbnail URL
-              </Label>
-              <Input id="thumbnail" value={currentResource.thumbnail} onChange={e => setCurrentResource({...currentResource, thumbnail: e.target.value})} className="col-span-3" placeholder="https://picsum.photos/600/400" />
-            </div>
+            {(currentResource.type === 'video') && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="thumbnail" className="text-right">
+                  Thumbnail URL
+                </Label>
+                <Input id="thumbnail" value={currentResource.thumbnail} onChange={e => setCurrentResource({...currentResource, thumbnail: e.target.value})} className="col-span-3" placeholder="https://picsum.photos/600/400" />
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="duration" className="text-right">
                 Duration
               </Label>
               <Input id="duration" value={currentResource.duration || ''} onChange={e => setCurrentResource({...currentResource, duration: e.target.value})} className="col-span-3" placeholder="e.g. 10 mins" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="tags" className="text-right">
+                Tags
+              </Label>
+              <Input id="tags" value={currentResource.tags || ''} onChange={e => setCurrentResource({...currentResource, tags: e.target.value})} className="col-span-3" placeholder="e.g. anxiety, stress" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="description" className="text-right">
