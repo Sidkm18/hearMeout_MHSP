@@ -10,7 +10,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateJournalPromptsInputSchema = z.object({
+const GenerateJournalPromptsInputSchema = z.object({
   mood: z
     .number()
     .describe("The user's overall mood on a scale of 1 to 10."),
@@ -22,7 +22,7 @@ export type GenerateJournalPromptsInput = z.infer<
   typeof GenerateJournalPromptsInputSchema
 >;
 
-export const GenerateJournalPromptsOutputSchema = z.object({
+const GenerateJournalPromptsOutputSchema = z.object({
   prompts: z
     .array(z.string())
     .describe('A list of 3-4 thoughtful journal prompts.'),
