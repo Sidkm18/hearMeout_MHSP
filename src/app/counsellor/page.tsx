@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/accordion';
 import { Loader2, PlusCircle, Trash2, Edit, AlertCircle, Clock, X } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc, Timestamp, getDocs, orderBy, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -111,7 +111,7 @@ export default function CounsellorDashboard() {
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
   
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [alertContent, setAlertContent] = useState({ title: '', description: ''});
+  const [alertContent, setAlertContent] = useState<{title: string, description: React.ReactNode}>({ title: '', description: ''});
   
   const { availability, saveAvailability, isLoading: isLoadingAvailability } = useCounsellorAvailability(user?.uid || '');
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
@@ -243,9 +243,29 @@ export default function CounsellorDashboard() {
     }
   }
   
-  const showMedicalInfo = (appointment: Appointment) => {
+  const showMedicalInfo = async (appointment: Appointment) => {
     if(appointment.shareMedicalInfo) {
-         setAlertContent({ title: `${appointment.studentName}'s Medical Info`, description: "PHQ-9 Score: 12 (Moderate Depression), GAD-7 Score: 9 (Moderate Anxiety). This is placeholder data." });
+        const testResultsQuery = query(
+            collection(db, 'testResults'),
+            where('userId', '==', appointment.studentId),
+            orderBy('date', 'desc'),
+            limit(1)
+        );
+        const snapshot = await getDocs(testResultsQuery);
+        if (snapshot.empty) {
+            setAlertContent({ title: `${appointment.studentName}'s Medical Info`, description: "No test results found for this student." });
+        } else {
+            const lastTest = snapshot.docs[0].data();
+            const description = (
+                <div className="space-y-2 text-sm">
+                    <p><strong>Test:</strong> {lastTest.testName}</p>
+                    <p><strong>Date:</strong> {format(lastTest.date.toDate(), 'PPP')}</p>
+                    <p><strong>Score:</strong> {lastTest.score}</p>
+                    <p><strong>Interpretation:</strong> {lastTest.interpretation}</p>
+                </div>
+            );
+            setAlertContent({ title: `${appointment.studentName}'s Latest Medical Test`, description });
+        }
     } else {
         setAlertContent({ title: `Consent Not Provided`, description: `${appointment.studentName} has not consented to sharing their medical test information.` });
     }

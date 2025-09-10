@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -375,22 +376,24 @@ export default function StudentDashboard() {
                         </ul>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full" variant="secondary">Start Assessment</Button>
+                        <Button className="w-full" variant="secondary" asChild>
+                           <Link href="/medical-tests">Start Assessment</Link>
+                        </Button>
                     </CardFooter>
                 </Card>
                 <Card className="rounded-2xl shadow-lg">
-                    <CardHeader>
-                        <CardTitle>My Profile</CardTitle>
-                        <CardDescription>Manage your personal information.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <p className="text-sm text-muted-foreground mb-4">Keep your profile details up to date.</p>
-                    </CardContent>
-                    <CardFooter>
-                        <Button className="w-full" asChild>
-                            <Link href="/student-profile">Go to Profile</Link>
-                        </Button>
-                    </CardFooter>
+                  <CardHeader>
+                    <CardTitle>My Profile</CardTitle>
+                    <CardDescription>Manage your personal information.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                     <p className="text-sm text-muted-foreground mb-4">Keep your profile details up to date.</p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button className="w-full" asChild>
+                      <Link href="/student-profile">Go to Profile</Link>
+                    </Button>
+                  </CardFooter>
                 </Card>
              </div>
           </TabsContent>
