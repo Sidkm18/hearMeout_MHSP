@@ -96,7 +96,7 @@ export function ChatbotModal({ open, onOpenChange, mood }: ChatbotModalProps) {
             <Bot /> Chat with your AI Companion
           </DialogTitle>
           <DialogDescription>
-            Feeling {mood.toLowerCase()}? I'm here to listen. How can I help you today?
+            I'm here to listen. How can I help you today?
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="flex-grow px-6" ref={scrollAreaRef}>

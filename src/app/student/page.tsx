@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,22 +11,17 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Frown,
-  Smile,
-  Meh,
-  Heart,
-  Laugh,
   MessageSquare,
   BookOpen,
   Headphones,
   Wind,
   BrainCircuit,
   Loader2,
+  ListPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -71,20 +65,11 @@ interface Resource {
   thumbnail: string;
 }
 
-const moodOptions = [
-  { name: 'Sad', icon: Frown },
-  { name: 'Neutral', icon: Meh },
-  { name: 'Happy', icon: Smile },
-  { name: 'Excited', icon: Laugh },
-  { name: 'Loved', icon: Heart },
-];
-
 export default function StudentDashboard() {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [mood, setMood] = useState('Neutral');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isChatbotOpen, setChatbotOpen] = useState(false);
   const [counsellors, setCounsellors] = useState<Counsellor[]>([]);
@@ -215,7 +200,11 @@ export default function StudentDashboard() {
           How are you doing today, {user.name}?
         </h2>
 
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-8 gap-4">
+             <Button size="lg" onClick={() => router.push('/journal')} className="rounded-full shadow-lg">
+                <ListPlus className="mr-2 h-5 w-5"/>
+                Track Today's Mood
+            </Button>
             <Button size="lg" onClick={() => setChatbotOpen(true)} className="rounded-full shadow-lg">
                 <MessageSquare className="mr-2 h-5 w-5"/>
                 Talk to my AI companion
@@ -231,37 +220,6 @@ export default function StudentDashboard() {
 
           <TabsContent value="hear-me" className="mt-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="lg:col-span-3 rounded-2xl shadow-lg">
-                <CardHeader>
-                  <CardTitle>Select Your Mood</CardTitle>
-                  <CardDescription>
-                    Let us know how you're feeling. This helps us support you better.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-around items-center">
-                  {moodOptions.map(({ name, icon: Icon }) => (
-                    <button
-                      key={name}
-                      onClick={() => setMood(name)}
-                      className={cn(
-                        'flex flex-col items-center gap-2 p-3 rounded-lg transition-all duration-200',
-                        mood === name
-                          ? 'bg-accent text-accent-foreground scale-110'
-                          : 'hover:bg-accent/50'
-                      )}
-                    >
-                      <Icon
-                        className={cn(
-                          'h-10 w-10',
-                          mood === name ? 'text-primary' : 'text-muted-foreground'
-                        )}
-                      />
-                      <span className="text-sm font-medium">{name}</span>
-                    </button>
-                  ))}
-                </CardContent>
-              </Card>
-
               <Card className="lg:col-span-2 rounded-2xl shadow-lg">
                 <CardHeader>
                   <CardTitle>Book a Counsellor</CardTitle>
@@ -495,7 +453,7 @@ export default function StudentDashboard() {
           </TabsContent>
         </Tabs>
       </main>
-      <ChatbotModal open={isChatbotOpen} onOpenChange={setChatbotOpen} mood={mood} />
+      <ChatbotModal open={isChatbotOpen} onOpenChange={setChatbotOpen} mood={"Neutral"} />
     </>
   );
 }
