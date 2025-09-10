@@ -11,7 +11,7 @@ import {
   setDoc,
   onSnapshot,
 } from 'firebase/firestore';
-import { format }s from 'date-fns';
+import { format } from 'date-fns';
 
 export interface Availability {
   [day: string]: string[]; // e.g., { 'Monday': ['09:00', '10:00'], 'Tuesday': [] }
