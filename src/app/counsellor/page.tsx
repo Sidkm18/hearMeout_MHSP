@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,7 +24,6 @@ import {
 import { Loader2, PlusCircle, Trash2, Edit, AlertCircle, Clock, X } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
-import type { User as AppUser } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -58,6 +58,7 @@ import { useCounsellorAvailability, type Availability } from '@/hooks/use-availa
 import { availableTimes as allPossibleTimes } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface Appointment {
   id: string;
@@ -261,7 +262,7 @@ export default function CounsellorDashboard() {
         const daySlots = prev[day] || [];
         const newSlots = daySlots.includes(time)
             ? daySlots.filter(t => t !== time)
-            : [...daySlots, time].sort();
+            : [...daySlots, time].sort((a, b) => new Date('1970/01/01 ' + a.replace(' ', '')).getTime() - new Date('1970/01/01 ' + b.replace(' ', '')).getTime());
         return { ...prev, [day]: newSlots };
     });
   };
@@ -315,25 +316,23 @@ export default function CounsellorDashboard() {
                 />
                 <div>
                   <h3 className="font-semibold text-lg mb-4">
-                    Upcoming Sessions
+                    Upcoming Sessions on {date ? format(date, 'PPP') : '...'}
                   </h3>
                    {isLoading ? (
                     <div className="flex justify-center items-center h-40">
                       <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
-                  ) : appointments.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">You have no upcoming appointments.</p>
+                  ) : appointments.filter(a => a.date === (date ? format(date, 'yyyy-MM-dd') : '')).length === 0 ? (
+                    <p className="text-muted-foreground text-sm">You have no upcoming appointments for this day.</p>
                   ) : (
                   <Accordion type="single" collapsible className="w-full">
-                    {appointments.map((session) => (
+                    {appointments.filter(a => a.date === (date ? format(date, 'yyyy-MM-dd') : '')).map((session) => (
                       <AccordionItem value={session.id} key={session.id}>
                         <AccordionTrigger>
                           <div className="flex items-center justify-between w-full pr-4">
                             <span>{session.studentName}</span>
                             <div className="text-sm text-muted-foreground">
-                              <span>
-                                {new Date(session.date).toLocaleDateString()} at {session.time}
-                              </span>
+                               <span>at {session.time}</span>
                             </div>
                           </div>
                         </AccordionTrigger>
@@ -371,18 +370,18 @@ export default function CounsellorDashboard() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                    {isLoadingAvailability ? <Loader2 className="animate-spin" /> :
+                    {isLoadingAvailability ? <div className="flex justify-center"><Loader2 className="animate-spin" /></div> :
                      <div className="space-y-4">
                         {daysOfWeek.map(day => (
-                            <div key={day}>
-                                <h4 className="font-medium text-sm mb-2">{day}</h4>
+                            <div key={day} className="flex items-start gap-4">
+                                <h4 className="font-medium text-sm w-20 text-right pt-1">{day}</h4>
                                 {availability[day] && availability[day]!.length > 0 ? (
-                                    <div className="flex flex-wrap gap-2">
-                                        {availability[day]!.map(time => (
+                                    <div className="flex flex-wrap gap-2 flex-1">
+                                        {availability[day]!.sort().map(time => (
                                             <Badge key={time} variant="secondary">{time}</Badge>
                                         ))}
                                     </div>
-                                ) : <p className="text-xs text-muted-foreground">Not available</p>}
+                                ) : <p className="text-xs text-muted-foreground flex-1 pt-1">Not available</p>}
                             </div>
                         ))}
                     </div>
@@ -555,9 +554,9 @@ export default function CounsellorDashboard() {
           </DialogHeader>
           <div className="py-4 space-y-6">
             {daysOfWeek.map(day => (
-                <div key={day} className="grid grid-cols-4 gap-4 items-start">
-                    <Label className="font-semibold text-right pt-2">{day}</Label>
-                    <div className="col-span-3">
+                <div key={day} className="grid grid-cols-5 gap-4 items-start">
+                    <Label className="font-semibold text-right pt-2 col-span-1">{day}</Label>
+                    <div className="col-span-4">
                         <div className="grid grid-cols-3 gap-2">
                            {allPossibleTimes.map(time => (
                              <Button 
@@ -565,6 +564,7 @@ export default function CounsellorDashboard() {
                                 variant={currentAvailability[day]?.includes(time) ? 'default' : 'outline'}
                                 size="sm"
                                 onClick={() => handleToggleTimeSlot(day, time)}
+                                className="font-mono"
                             >
                                {time}
                              </Button>

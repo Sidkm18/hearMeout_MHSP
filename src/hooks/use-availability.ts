@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -14,7 +15,7 @@ import {
 import { format } from 'date-fns';
 
 export interface Availability {
-  [day: string]: string[]; // e.g., { 'Monday': ['09:00', '10:00'], 'Tuesday': [] }
+  [day: string]: string[]; // e.g., { 'Monday': ['09:00 AM', '10:00 AM'], 'Tuesday': [] }
 }
 
 export function useAvailability(counsellorId: string, selectedDate: Date | undefined) {
@@ -28,6 +29,7 @@ export function useAvailability(counsellorId: string, selectedDate: Date | undef
     }
 
     setIsLoading(true);
+    let unsubscribeAppointments: (() => void) | null = null;
     try {
       const dayOfWeek = format(selectedDate, 'EEEE'); // e.g., "Monday"
       
@@ -50,8 +52,9 @@ export function useAvailability(counsellorId: string, selectedDate: Date | undef
         where('counsellorId', '==', counsellorId),
         where('date', '==', dateString)
       );
-
-      const unsubscribe = onSnapshot(appointmentsQuery, (snapshot) => {
+      
+      // Use a variable to hold the unsubscribe function from onSnapshot
+      unsubscribeAppointments = onSnapshot(appointmentsQuery, (snapshot) => {
         const bookedTimes = new Set<string>();
         snapshot.forEach((doc) => {
           bookedTimes.add(doc.data().time);
@@ -70,20 +73,35 @@ export function useAvailability(counsellorId: string, selectedDate: Date | undef
         setIsLoading(false);
       });
 
-      return () => unsubscribe();
-
     } catch (error) {
       console.error('Error fetching availability:', error);
       setAvailableSlots([]);
       setIsLoading(false);
     }
+    
+    // Return a cleanup function that can be called
+    return () => {
+        if (unsubscribeAppointments) {
+            unsubscribeAppointments();
+        }
+    };
   }, [counsellorId, selectedDate]);
 
   useEffect(() => {
-    const promise = fetchAvailableSlots();
+    // To handle the async nature of fetchAvailableSlots and its returned cleanup function
+    let cleanup: (() => void) | undefined;
+    
+    const run = async () => {
+        cleanup = await fetchAvailableSlots();
+    };
+
+    run();
+
     return () => {
-      promise?.then(unsubscribe => unsubscribe && unsubscribe());
-    }
+      if (cleanup) {
+        cleanup();
+      }
+    };
   }, [fetchAvailableSlots]);
 
   return { availableSlots, isLoading };
@@ -103,7 +121,12 @@ export const useCounsellorAvailability = (counsellorId: string) => {
         const unsubscribe = onSnapshot(availDocRef, (doc) => {
             if (doc.exists()) {
                 setAvailability(doc.data() as Availability);
+            } else {
+                setAvailability({}); // Set to empty object if no doc exists
             }
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error fetching counsellor availability:", error);
             setIsLoading(false);
         });
 
@@ -114,6 +137,7 @@ export const useCounsellorAvailability = (counsellorId: string) => {
         if (!counsellorId) return;
         const availDocRef = doc(db, 'availabilities', counsellorId);
         await setDoc(availDocRef, newAvailability);
+        setAvailability(newAvailability); // Optimistically update state
     };
 
     return { availability, saveAvailability, isLoading };
