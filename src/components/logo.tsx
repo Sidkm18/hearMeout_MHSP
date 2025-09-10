@@ -12,7 +12,7 @@ export const Logo = ({ className }: { className?: string }) => {
           <path d="M72.48 88.4267C72.48 88.4267 73.6 89.28 75.2 89.6C76.8 89.92 82.08 89.92 84 89.6C85.92 89.28 87.52 88.4267 87.52 88.4267" stroke="#A7B5FF" strokeWidth="2" strokeLinecap="round" />
           <path d="M80 96.2401V102" stroke="#A7B5FF" strokeWidth="2" strokeLinecap="round" />
           <path d="M70.48 64.1066C70.48 64.1066 68.88 64.4266 67.84 66.0266C66.8 67.6266 65.2 75.6266 65.2 75.6266" stroke="#A7B5FF" strokeWidth="2" strokeLinecap="round" />
-          <path d="M89.52 64.1066C89.52 64.1066 91.12 64.4266 92.16 66.0266C93.2 67.6266 94.8 75.6266 94.8 75.6266" stroke="#AT7B5FF" strokeWidth="2" strokeLinecap="round" />
+          <path d="M89.52 64.1066C89.52 64.1066 91.12 64.4266 92.16 66.0266C93.2 67.6266 94.8 75.6266 94.8 75.6266" stroke="#A7B5FF" strokeWidth="2" strokeLinecap="round" />
           <path d="M103.2 59.2C103.2 59.2 105.6 52 100.8 47.2C96 42.4 89.6 42.4 89.6 42.4" stroke="#A7B5FF" strokeWidth="2" strokeLinecap="round" />
           <path d="M100.8 47.2C100.8 47.2 101.92 50.8 98.72 52.64C95.52 54.48 91.2 52.8 91.2 52.8" stroke="#A7B5FF" strokeWidth="2" strokeLinecap="round" />
           <path d="M96 36C96 36 100.8 33.6 103.2 38.4C105.6 43.2 101.6 48.8 101.6 48.8" stroke="#A7B5FF" strokeWidth="2" strokeLinecap="round" />
