@@ -114,7 +114,11 @@ export default function PostPage() {
     }
   };
   
-  const canReply = user && (post?.type === 'peer-to-peer' || (post?.type === 'peer-to-professional' && (user.role === 'Counsellor' || user.role === 'Volunteer')));
+  const canReply = user && (
+    post?.type === 'peer-to-peer' || 
+    (post?.type === 'peer-to-professional' && (user.role === 'Counsellor' || user.role === 'Volunteer' || user.role === 'Admin'))
+  );
+
   const canModerate = user && (user.role === 'Counsellor' || user.role === 'Admin' || user.role === 'Volunteer');
 
   if (isLoadingPost) {
